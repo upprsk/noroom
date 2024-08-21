@@ -23,6 +23,7 @@ export const processError = <T extends z.ZodTypeAny, S extends z.ZodTypeAny>(
 
     for (const [k, v] of Object.entries(data.data)) {
       const { message } = v as { message: string };
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
       setError(form, k, message);
     }
