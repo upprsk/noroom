@@ -1,5 +1,5 @@
 import { PUBLIC_POCKETBASE_URL } from '$env/static/public';
-import PocketBase, { ClientResponseError } from 'pocketbase';
+import PocketBase, { ClientResponseError, type BaseModel, type FileOptions } from 'pocketbase';
 import { setError, type Infer, type SuperValidated } from 'sveltekit-superforms';
 import type { z } from 'zod';
 
@@ -29,5 +29,19 @@ export const processError = <T extends z.ZodTypeAny, S extends z.ZodTypeAny>(
     }
 
     return setError(form, e.message);
+  }
+};
+
+export const getImageUrl = (m: BaseModel, file: string, opt?: FileOptions) =>
+  pb.files.getUrl(m, file, opt);
+
+export const sendFingerprint = async (userid: string | undefined, fingerprint: string) => {
+  try {
+    await pb.send('/api/noroom/tracking', {
+      method: 'POST',
+      body: { userid, fingerprint },
+    });
+  } catch (e) {
+    console.error(e);
   }
 };

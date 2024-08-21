@@ -36,6 +36,7 @@
 	},
 	"type": "module",
 	"dependencies": {
+		"@thumbmarkjs/thumbmarkjs": "^0.14.8",
 		"pocketbase": "^0.21.4"
 	}
 }

@@ -49,3 +49,6 @@ export const zLogin = z.object({
   username: z.string(),
   password: z.string(),
 });
+
+export type BaseModel = z.infer<typeof zModelBase>;
+export type UserModel = z.infer<typeof zUserSchema>;

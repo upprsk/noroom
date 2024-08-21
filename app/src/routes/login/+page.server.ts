@@ -9,8 +9,7 @@ const zErrorSchema = zMakeErrorDataSchema(zFormSchema.keyof());
 
 export const load: ServerLoad = async ({ locals }) => {
   // don't allow logged in users here
-  // FIXME: Redirect to account page
-  if (locals.user) throw redirect(303, '/');
+  if (locals.user) throw redirect(303, '/account');
 
   const form = await superValidate(zod(zFormSchema));
 
