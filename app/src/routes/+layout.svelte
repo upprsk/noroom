@@ -2,9 +2,9 @@
   import Navbar from '$lib/components/Navbar.svelte';
   import type { UserModel } from '$lib/models';
   import { currentUser } from '$lib/stores/user';
+  import { sendTracking } from '$lib/tracking';
   import { onMount } from 'svelte';
   import '../app.css';
-  import { sendFingerprint } from '$lib/pocketbase';
 
   export let data;
 
@@ -14,12 +14,11 @@
   onMount(async () => {
     const { getFingerprint, getFingerprintData } = await import('@thumbmarkjs/thumbmarkjs');
     const fingerprint = await getFingerprint();
-    if (typeof fingerprint === 'string') {
-      sendFingerprint($currentUser?.id, fingerprint);
-    }
-
     const data = await getFingerprintData();
-    console.log(data);
+
+    if (typeof fingerprint === 'string') {
+      sendTracking($currentUser?.id, fingerprint, data);
+    }
   });
 </script>
 

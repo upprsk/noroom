@@ -2,8 +2,9 @@
   export let name: string;
   export let errors: string[] | undefined;
   export let value: string;
-  export let constraints: { [key: string]: any } | undefined;
+  export let constraints: { [key: string]: unknown } | undefined;
 
+  export let disabled = false;
   export let placeholder = name;
 </script>
 
@@ -17,6 +18,7 @@
     aria-invalid={errors ? 'true' : undefined}
     bind:value
     {name}
+    {disabled}
     {placeholder}
     {...constraints}
   />

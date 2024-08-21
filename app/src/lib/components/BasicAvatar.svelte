@@ -3,6 +3,7 @@
   import { getImageUrl } from '$lib/pocketbase';
 
   export let user: UserModel;
+  export let href: string;
 
   const placeholderLetters = (name: string) =>
     name
@@ -14,15 +15,15 @@
 </script>
 
 {#if user.avatar !== ''}
-  <div class="avatar">
-    <div class="w-12 rounded-full">
+  <a {href} class="avatar">
+    <div class="w-10 rounded-full">
       <img alt="avatar" src={getImageUrl(user, user.avatar, { thumb: '64x64' })} />
     </div>
-  </div>
+  </a>
 {:else}
-  <div class="avatar placeholder">
-    <div class="bg-neutral text-neutral-content w-12 rounded-full">
+  <a {href} class="avatar placeholder">
+    <div class="bg-neutral text-neutral-content w-10 rounded-full">
       <span>{placeholderLetters(user.name)}</span>
     </div>
-  </div>
+  </a>
 {/if}

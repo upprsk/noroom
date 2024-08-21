@@ -2,7 +2,7 @@
   import NavbarEnd from './NavbarEnd.svelte';
 </script>
 
-<div class="navbar bg-base-100">
+<div class="navbar bg-base-100 shadow-md z-10">
   <div class="navbar-start">
     <div class="dropdown">
       <div tabindex="0" role="button" class="btn btn-ghost btn-circle">

@@ -32,6 +32,50 @@ export const zUserSchema = zModelBase.extend({
   avatar: z.string(),
 });
 
+export const zEndDeviceSchema = zModelBase.extend({
+  fingerprint: z.string(),
+  owners: z.string().array(),
+  deviceData: z
+    .object({
+      locales: z.object({
+        languages: z.string(),
+        timezone: z.string(),
+      }),
+      system: z.object({
+        platform: z.string(),
+        product: z.string(),
+        productSub: z.string(),
+        browser: z.object({ name: z.string(), version: z.string() }),
+      }),
+      hardware: z.object({
+        architecture: z.number(),
+        deviceMemory: z.string(),
+        jsHeapSizeLimit: z.number(),
+      }),
+    })
+    .passthrough()
+    .nullish(),
+  locationData: z
+    .object({
+      query: z.string(),
+      status: z.string(),
+      country: z.string(),
+      countryCode: z.string(),
+      region: z.string(),
+      regionName: z.string(),
+      city: z.string(),
+      zip: z.string(),
+      lat: z.number(),
+      lon: z.number(),
+      timezone: z.string(),
+      isp: z.string(),
+      org: z.string(),
+      as: z.string(),
+    })
+    .passthrough()
+    .nullish(),
+});
+
 export const zRegisterSchema = zUserSchema
   .pick({
     username: true,
