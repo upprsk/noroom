@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -27,6 +28,19 @@ func main() {
 		e.Router.GET("/*", apis.StaticDirectoryHandler(os.DirFS("./pb_public"), true))
 
 		e.Router.POST("/api/noroom/tracking", makeApiNoroomTracking(app, validate))
+
+		return nil
+	})
+
+	app.OnRecordBeforeCreateRequest("classes").Add(func(e *core.RecordCreateEvent) error {
+		admin, _ := e.HttpContext.Get(apis.ContextAdminKey).(*models.Admin)
+		if admin != nil {
+			return nil // ignore for admins
+		}
+
+		info := apis.RequestInfo(e.HttpContext)
+		e.Record.Set("owner", info.AuthRecord.Id)
+		fmt.Println("owner:", info.AuthRecord.Id)
 
 		return nil
 	})

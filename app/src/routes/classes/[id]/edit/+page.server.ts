@@ -13,12 +13,14 @@ export const load: ServerLoad = async ({ locals, params }) => {
   const { user, pb } = locals;
 
   // don't allow not logged in here
-  if (!id || !user || user.role !== 'editor') throw redirect(303, '/');
+  if (!id || !user) throw redirect(303, '/');
 
   const klass = await pb
     .collection('classes')
     .getOne(id, { fetch })
     .then((r) => zFormSchema.parse(r));
+
+  if (klass.owner !== user.id && user.role !== 'editor') throw redirect(303, '/');
 
   const form = await superValidate(klass, zod(zFormSchema));
 

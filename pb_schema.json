@@ -68,6 +68,22 @@
           "maxSize": 5242880,
           "protected": false
         }
+      },
+      {
+        "system": false,
+        "id": "fguwpfik",
+        "name": "role",
+        "type": "select",
+        "required": true,
+        "presentable": false,
+        "unique": false,
+        "options": {
+          "maxSelect": 1,
+          "values": [
+            "editor",
+            "student"
+          ]
+        }
       }
     ],
     "indexes": [
@@ -105,7 +121,7 @@
         "presentable": false,
         "unique": false,
         "options": {
-          "min": null,
+          "min": 2,
           "max": null,
           "pattern": ""
         }
@@ -123,14 +139,46 @@
           "max": null,
           "pattern": ""
         }
+      },
+      {
+        "system": false,
+        "id": "bduqjt2r",
+        "name": "attachments",
+        "type": "file",
+        "required": false,
+        "presentable": false,
+        "unique": false,
+        "options": {
+          "mimeTypes": [],
+          "thumbs": [],
+          "maxSelect": 99,
+          "maxSize": 5242880,
+          "protected": false
+        }
+      },
+      {
+        "system": false,
+        "id": "oiykay6i",
+        "name": "owner",
+        "type": "relation",
+        "required": false,
+        "presentable": false,
+        "unique": false,
+        "options": {
+          "collectionId": "_pb_users_auth_",
+          "cascadeDelete": false,
+          "minSelect": null,
+          "maxSelect": 1,
+          "displayFields": null
+        }
       }
     ],
     "indexes": [],
     "listRule": "@request.auth.id != ''",
     "viewRule": "@request.auth.id != ''",
-    "createRule": null,
-    "updateRule": null,
-    "deleteRule": null,
+    "createRule": "@request.auth.id != '' && @request.auth.role = 'editor'",
+    "updateRule": "@request.auth.id != '' && @request.auth.id = owner.id",
+    "deleteRule": "@request.auth.id != '' && @request.auth.role = 'editor'",
     "options": {}
   },
   {

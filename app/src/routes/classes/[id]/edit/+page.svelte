@@ -3,8 +3,9 @@
   import TextArea from '$lib/components/input/TextArea.svelte';
   import TextInput from '$lib/components/input/TextInput.svelte';
   import { superForm } from 'sveltekit-superforms';
-  import { applyAction, enhance as enhanceForm } from '$app/forms';
+  import { enhance as enhanceForm } from '$app/forms';
   import ListAndRemoveAttachments from './ListAndRemoveAttachments.svelte';
+  import { currentUser } from '$lib/stores/user';
 
   export let data;
 
@@ -48,8 +49,10 @@
   <svelte:fragment slot="actions">
     <button type="button" class="btn" on:click={() => history.back()}>voltar</button>
     <a href="attach-files" class="btn">anexar</a>
-    <form method="POST" action="?/remove" use:enhanceForm>
-      <button class="btn btn-warning">remover</button>
-    </form>
+    {#if $currentUser?.role === 'editor'}
+      <form method="POST" action="?/remove" use:enhanceForm>
+        <button class="btn btn-warning">remover</button>
+      </form>
+    {/if}
   </svelte:fragment>
 </BasicFormCard>

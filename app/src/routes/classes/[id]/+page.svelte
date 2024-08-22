@@ -81,7 +81,7 @@
   {/if}
 
   <div class="card-actions justify-end">
-    {#if $currentUser?.role === 'editor'}
+    {#if $currentUser?.id === data.klass.owner || $currentUser?.role === 'editor'}
       <a href="{data.klass.id}/edit" class="btn btn-primary">editar</a>
     {/if}
   </div>

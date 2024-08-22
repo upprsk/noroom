@@ -101,6 +101,7 @@ export const zClassSchema = zModelBase.extend({
   title: z.string(),
   content: z.string(),
   attachments: z.string().array(),
+  owner: z.string(),
 });
 
 export const zFileUploadSchema = z.object({
