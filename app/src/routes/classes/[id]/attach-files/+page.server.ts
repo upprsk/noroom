@@ -1,4 +1,5 @@
-import { zClassSchema, zFileUploadSchema } from '$lib/models';
+import { zClassSchema, zErrorSchema, zFileUploadSchema } from '$lib/models';
+import { processError } from '$lib/pocketbase';
 import { redirect, type Actions, type ServerLoad } from '@sveltejs/kit';
 import { fail, message, superValidate } from 'sveltekit-superforms';
 import { zod } from 'sveltekit-superforms/adapters';
@@ -33,10 +34,11 @@ export const actions: Actions = {
       return fail(400, { form });
     }
 
-    console.log('form:', form.data.attachments);
-
-    const r = await pb.collection('classes').update(id, form.data);
-    console.log('response:', r);
+    try {
+      await pb.collection('classes').update(id, form.data);
+    } catch (e) {
+      return processError(form, e, zErrorSchema);
+    }
 
     return message(form, `${form.data.attachments.length} arquivos anexados`);
   },
