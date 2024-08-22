@@ -1,6 +1,8 @@
 <script lang="ts">
   import { browser } from '$app/environment';
   import BasicCard from '$lib/components/BasicCard.svelte';
+  import { getFileUrl } from '$lib/pocketbase.js';
+  import { currentUser } from '$lib/stores/user';
   import DOMPurify from 'dompurify';
   import { Marked } from 'marked';
   import { markedHighlight } from 'marked-highlight';
@@ -59,5 +61,28 @@
         {@html s(value)}
       {/await}
     {/await}
+  </div>
+
+  {#if data.klass.attachments.length > 0}
+    <div class="divider"></div>
+
+    <div class="flex w-full gap-2">
+      {#each data.klass.attachments as attach}
+        <a href={getFileUrl(data.klass, attach)} class="btn btn-sm">
+          <svg class="w-4 h-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"
+            ><path
+              d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Z"
+            ></path></svg
+          >
+          {attach}
+        </a>
+      {/each}
+    </div>
+  {/if}
+
+  <div class="card-actions justify-end">
+    {#if $currentUser?.role === 'editor'}
+      <a href="{data.klass.id}/edit" class="btn btn-primary">editar</a>
+    {/if}
   </div>
 </BasicCard>

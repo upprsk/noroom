@@ -3,9 +3,9 @@ import { redirect, type ServerLoad } from '@sveltejs/kit';
 
 export const load: ServerLoad = async ({ locals, params, fetch }) => {
   const { id } = params;
-  const { pb } = locals;
+  const { pb, user } = locals;
 
-  if (!id) throw redirect(303, '/');
+  if (!id || !user) throw redirect(303, '/');
 
   const classP = pb
     .collection('classes')

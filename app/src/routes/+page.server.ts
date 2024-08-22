@@ -1,5 +1,4 @@
 import { zClassSchema } from '$lib/models';
-import { pb } from '$lib/pocketbase';
 import type { ServerLoad } from '@sveltejs/kit';
 
 const zClassesArraySchema = zClassSchema.array();

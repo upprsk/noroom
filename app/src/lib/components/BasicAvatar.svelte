@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { UserModel } from '$lib/models';
-  import { getImageUrl } from '$lib/pocketbase';
+  import { getFileUrl } from '$lib/pocketbase';
 
   export let user: UserModel;
   export let href: string;
@@ -17,7 +17,7 @@
 {#if user.avatar !== ''}
   <a {href} class="avatar">
     <div class="w-10 rounded-full">
-      <img alt="avatar" src={getImageUrl(user, user.avatar, { thumb: '64x64' })} />
+      <img alt="avatar" src={getFileUrl(user, user.avatar, { thumb: '64x64' })} />
     </div>
   </a>
 {:else}

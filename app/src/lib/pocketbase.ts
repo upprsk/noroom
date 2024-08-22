@@ -19,8 +19,6 @@ export const updateFromEvent = <T extends z.ZodTypeAny, U extends z.infer<T>>(
   schema: T,
   data: U[],
 ): U[] => {
-  console.log(e);
-
   const del = () => data.filter((item) => item.id !== e.record.id);
   const create = () => [...data, e.record];
   const update = () => {
@@ -67,5 +65,5 @@ export const processError = <T extends z.ZodTypeAny, S extends z.ZodTypeAny>(
   }
 };
 
-export const getImageUrl = (m: BaseModel, file: string, opt?: FileOptions) =>
+export const getFileUrl = (m: BaseModel, file: string, opt?: FileOptions) =>
   pb.files.getUrl(m, file, opt);

@@ -9,7 +9,11 @@
 
   <div class="h-5"></div>
 
-  <ul class="mx-5">
+  {#if !data.user}
+    <p>Entre com sua conta para ver o conteudo das aulas.</p>
+  {/if}
+
+  <ul class="mx-5 flex flex-col gap-3">
     {#each data.classes as cl (cl.id)}
       <li>
         <a href="classes/{cl.id}" class="flex justify-between btn">

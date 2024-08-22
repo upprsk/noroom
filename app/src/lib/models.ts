@@ -4,6 +4,8 @@ export const zModelBase = z.object({
   id: z.string(),
   created: z.string(),
   updated: z.string(),
+  collectionId: z.string(),
+  collectionName: z.string(),
 });
 
 export const zErrorDataItemSchema = z.object({
@@ -30,6 +32,7 @@ export const zUserSchema = zModelBase.extend({
   mat: z.number().int(),
   curso: z.string(),
   avatar: z.string(),
+  role: z.enum(['editor', 'student']),
 });
 
 export const zEndDeviceSchema = zModelBase.extend({
@@ -97,6 +100,14 @@ export const zLogin = z.object({
 export const zClassSchema = zModelBase.extend({
   title: z.string(),
   content: z.string(),
+  attachments: z.string().array(),
+});
+
+export const zFileUploadSchema = z.object({
+  attachments: z
+    .instanceof(File, { message: 'Select a file' })
+    .refine((f) => f.size < 5_242_880, 'Max 5MiB upload size')
+    .array(),
 });
 
 export type BaseModel = z.infer<typeof zModelBase>;
