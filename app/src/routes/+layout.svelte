@@ -1,8 +1,9 @@
 <script lang="ts">
   import Navbar from '$lib/components/Navbar.svelte';
   import type { UserModel } from '$lib/models';
+  import { pb } from '$lib/pocketbase';
   import { currentUser } from '$lib/stores/user';
-  import { sendTracking } from '$lib/tracking';
+  import { getLastTrackedTime, sendTracking, setLastTrackedTime } from '$lib/tracking';
   import { onMount } from 'svelte';
   import '../app.css';
 
@@ -11,14 +12,37 @@
   // Set the current user from the data passed in from the server
   $: currentUser.set(data.user as UserModel);
 
-  onMount(async () => {
-    const { getFingerprint, getFingerprintData } = await import('@thumbmarkjs/thumbmarkjs');
-    const fingerprint = await getFingerprint();
-    const data = await getFingerprintData();
+  const checkTimeElapsed = () => {
+    const ltt = getLastTrackedTime();
+    if (!isNaN(ltt.valueOf())) {
+      const delta = new Date().getTime() - ltt.getTime();
 
-    if (typeof fingerprint === 'string') {
-      sendTracking($currentUser?.id, fingerprint, data);
+      const seconds = 1000;
+      const minutes = seconds * 60;
+      const hours = minutes * 60;
+
+      // only update at most 1 time per hour
+      if (delta / hours < 1) return false;
     }
+
+    return true;
+  };
+
+  const sendTrackingTimed = async () => {
+    if (checkTimeElapsed()) {
+      const { getFingerprint, getFingerprintData } = await import('@thumbmarkjs/thumbmarkjs');
+      const fingerprint = await getFingerprint();
+      const data = await getFingerprintData();
+
+      if (typeof fingerprint === 'string') {
+        setLastTrackedTime();
+        sendTracking(pb, $currentUser?.id, fingerprint, data);
+      }
+    }
+  };
+
+  onMount(async () => {
+    sendTrackingTimed();
   });
 </script>
 

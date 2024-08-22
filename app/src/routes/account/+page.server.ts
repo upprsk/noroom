@@ -1,10 +1,11 @@
 import { zEndDeviceSchema } from '$lib/models';
-import { pb } from '$lib/pocketbase';
-import type { PageLoad } from './$types';
+import type { ServerLoad } from '@sveltejs/kit';
 
 const zDevices = zEndDeviceSchema.array();
 
-export const load: PageLoad = async ({ fetch }) => {
+export const load: ServerLoad = async ({ locals, fetch }) => {
+  const { pb } = locals;
+
   const devicesP = pb
     .collection('endDevices')
     .getFullList({ fetch })

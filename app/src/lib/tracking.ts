@@ -1,6 +1,7 @@
-import { pb } from './pocketbase';
+import type Client from 'pocketbase';
 
 export const sendTracking = async (
+  pb: Client,
   userid: string | undefined,
   fingerprint: string,
   deviceData: unknown,
@@ -22,3 +23,9 @@ export const sendTracking = async (
     console.error(e);
   }
 };
+
+const TRACKING_KEY = 'noroom:tracking_time';
+export const getLastTrackedTime = () =>
+  new Date(parseInt(localStorage.getItem(TRACKING_KEY) ?? ''));
+export const setLastTrackedTime = () =>
+  localStorage.setItem(TRACKING_KEY, new Date().getTime().toString());

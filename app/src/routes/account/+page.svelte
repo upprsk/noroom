@@ -1,8 +1,5 @@
 <script lang="ts">
   import BasicCard from '$lib/components/BasicCard.svelte';
-  import EmailInput from '$lib/components/input/EmailInput.svelte';
-  import IntInput from '$lib/components/input/IntInput.svelte';
-  import TextInput from '$lib/components/input/TextInput.svelte';
   import { zEndDeviceSchema } from '$lib/models.js';
   import { pb, updateFromEvent } from '$lib/pocketbase.js';
   import { onMount } from 'svelte';

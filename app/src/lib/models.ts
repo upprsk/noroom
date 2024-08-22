@@ -94,5 +94,10 @@ export const zLogin = z.object({
   password: z.string(),
 });
 
+export const zClassSchema = zModelBase.extend({
+  title: z.string(),
+  content: z.string(),
+});
+
 export type BaseModel = z.infer<typeof zModelBase>;
 export type UserModel = z.infer<typeof zUserSchema>;
