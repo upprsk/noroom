@@ -1,6 +1,8 @@
 import { zClassSchema } from '$lib/models';
 import { redirect, type ServerLoad } from '@sveltejs/kit';
 
+export const ssr = false;
+
 export const load: ServerLoad = async ({ locals, params, fetch }) => {
   const { id } = params;
   const { pb, user } = locals;

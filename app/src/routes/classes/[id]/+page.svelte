@@ -1,9 +1,7 @@
 <script lang="ts">
-  import { browser } from '$app/environment';
   import BasicCard from '$lib/components/BasicCard.svelte';
   import { getFileUrl } from '$lib/pocketbase.js';
   import { currentUser } from '$lib/stores/user';
-  import DOMPurify from 'dompurify';
   import { Marked } from 'marked';
   import { markedHighlight } from 'marked-highlight';
   import Prism from 'prismjs';
@@ -11,16 +9,9 @@
   import 'prismjs/components/prism-cpp';
   import 'prismjs/components/prism-json';
   import 'prismjs/themes/prism-tomorrow.css';
+  import DOMPurify from 'dompurify';
 
   Prism.manual = true;
-
-  const sanitize = browser
-    ? DOMPurify.sanitize
-    : (async () => {
-        const { JSDOM } = await import('jsdom');
-        const window = new JSDOM('').window;
-        return DOMPurify(window).sanitize;
-      })();
 
   const marked = new Marked(
     markedHighlight({
@@ -40,8 +31,6 @@
         }
 
         return Prism.highlight(code, grammar, lang);
-        // const language = hljs.getLanguage(lang) ? lang : 'plaintext';
-        // return hljs.highlight(code, { language }).value;
       },
     }),
   );
@@ -57,9 +46,7 @@
     {#await marked.parse(data.klass.content)}
       <!-- promise is pending -->
     {:then value}
-      {#await sanitize then s}
-        {@html s(value)}
-      {/await}
+      {@html DOMPurify.sanitize(value)}
     {/await}
   </div>
 
