@@ -45,6 +45,17 @@ func main() {
 		return nil
 	})
 
+	app.OnRecordBeforeCreateRequest("user").Add(func(e *core.RecordCreateEvent) error {
+		admin, _ := e.HttpContext.Get(apis.ContextAdminKey).(*models.Admin)
+		if admin != nil {
+			return nil // ignore for admins
+		}
+
+		e.Record.Set("role", "student")
+
+		return nil
+	})
+
 	if err := app.Start(); err != nil {
 		log.Fatal(err)
 	}
