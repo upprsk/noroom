@@ -2,12 +2,13 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"slices"
+	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v5"
@@ -25,8 +26,7 @@ func main() {
 
 	// serves static files from the provided public dir (if exists)
 	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
-		e.Router.GET("/*", apis.StaticDirectoryHandler(os.DirFS("./pb_public"), true))
-
+		// e.Router.GET("/*", apis.StaticDirectoryHandler(os.DirFS("./pb_public"), true))
 		e.Router.POST("/api/noroom/tracking", makeApiNoroomTracking(app, validate))
 
 		return nil
@@ -64,10 +64,9 @@ func main() {
 func makeApiNoroomTracking(app *pocketbase.PocketBase, validate *validator.Validate) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		type bodyModel struct {
-			UserId       string        `json:"userid"`
-			Fingerprint  string        `json:"fingerprint" validate:"required"`
-			DeviceData   any           `json:"deviceData"`
-			LocationData *LocationInfo `json:"locationData"`
+			UserId      string `json:"userid"`
+			Fingerprint string `json:"fingerprint" validate:"required"`
+			DeviceData  any    `json:"deviceData"`
 		}
 
 		var body bodyModel
@@ -93,6 +92,18 @@ func makeApiNoroomTracking(app *pocketbase.PocketBase, validate *validator.Valid
 			dev = models.NewRecord(endDevicesCollection)
 		}
 
+		realIp := c.Request().Header.Get("X-Real-IP")
+		locationInfo, err := getLocationInfoForIp(realIp)
+		if err != nil {
+			app.Logger().Error(
+				"failed to get location info for client address",
+				"fingerprint",
+				body.Fingerprint,
+				"ip",
+				realIp,
+			)
+		}
+
 		if body.UserId != "" {
 			usr, err := app.Dao().FindRecordById("users", body.UserId)
 			if err != nil {
@@ -106,7 +117,7 @@ func makeApiNoroomTracking(app *pocketbase.PocketBase, validate *validator.Valid
 					"fingerprint":  body.Fingerprint,
 					"owners":       []string{usr.Id},
 					"deviceData":   body.DeviceData,
-					"locationData": body.LocationData,
+					"locationData": locationInfo,
 				})
 
 				if err := form.Submit(); err != nil {
@@ -122,7 +133,7 @@ func makeApiNoroomTracking(app *pocketbase.PocketBase, validate *validator.Valid
 				form := forms.NewRecordUpsert(app, dev)
 				form.LoadData(map[string]any{
 					"owners":       append(devOwners, usr.Id),
-					"locationData": body.LocationData,
+					"locationData": locationInfo,
 				})
 
 				if err := form.Submit(); err != nil {
@@ -136,7 +147,7 @@ func makeApiNoroomTracking(app *pocketbase.PocketBase, validate *validator.Valid
 
 			form := forms.NewRecordUpsert(app, dev)
 			form.LoadData(map[string]any{
-				"locationData": body.LocationData,
+				"locationData": locationInfo,
 			})
 
 			if err := form.Submit(); err != nil {
@@ -147,7 +158,20 @@ func makeApiNoroomTracking(app *pocketbase.PocketBase, validate *validator.Valid
 			})
 		}
 
-		return c.NoContent(http.StatusOK)
+		form := forms.NewRecordUpsert(app, dev)
+		form.LoadData(map[string]any{
+			"fingerprint":  body.Fingerprint,
+			"deviceData":   body.DeviceData,
+			"locationData": locationInfo,
+		})
+
+		if err := form.Submit(); err != nil {
+			return err
+		}
+
+		return c.JSON(http.StatusOK, map[string]string{
+			"device": "anonymous new device",
+		})
 	}
 }
 
@@ -166,4 +190,24 @@ type LocationInfo struct {
 	Isp         string  `json:"isp"`
 	Org         string  `json:"org"`
 	As          string  `json:"as"`
+}
+
+func getLocationInfoForIp(ip string) (*LocationInfo, error) {
+	client := &http.Client{
+		Timeout: time.Second,
+	}
+
+	res, err := client.Get(fmt.Sprintf("http://ip-api.com/json/%s", ip))
+	if err != nil {
+		return nil, err
+	}
+
+	defer res.Body.Close()
+
+	info := new(LocationInfo)
+	if err := json.NewDecoder(res.Body).Decode(info); err != nil {
+		return nil, err
+	}
+
+	return info, nil
 }

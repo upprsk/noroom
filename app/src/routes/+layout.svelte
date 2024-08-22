@@ -35,7 +35,7 @@
       const data = await getFingerprintData();
 
       if (typeof fingerprint === 'string') {
-        setLastTrackedTime();
+        if ($currentUser) setLastTrackedTime();
         sendTracking(pb, $currentUser?.id, fingerprint, data);
       }
     }
