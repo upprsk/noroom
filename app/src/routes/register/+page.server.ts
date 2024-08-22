@@ -26,7 +26,7 @@ export const actions: Actions = {
     }
 
     try {
-      await locals.pb.collection('users').create(form.data);
+      await locals.pb.collection('users').create({ ...form.data, role: 'student' });
       await locals.pb.collection('users').authWithPassword(form.data.email, form.data.password);
     } catch (e) {
       return processError(form, e, zErrorSchema);
