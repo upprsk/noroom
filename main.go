@@ -37,11 +37,6 @@ func main() {
 }
 
 func makeApiNoroomTracking(app *pocketbase.PocketBase, validate *validator.Validate) echo.HandlerFunc {
-	endDevicesCollection, err := app.Dao().FindCollectionByNameOrId("endDevices")
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	return func(c echo.Context) error {
 		type bodyModel struct {
 			UserId       string        `json:"userid"`
@@ -62,6 +57,11 @@ func makeApiNoroomTracking(app *pocketbase.PocketBase, validate *validator.Valid
 		dev, err := app.Dao().FindFirstRecordByData("endDevices", "fingerprint", body.Fingerprint)
 		if err != nil {
 			if !errors.Is(err, sql.ErrNoRows) {
+				return err
+			}
+
+			endDevicesCollection, err := app.Dao().FindCollectionByNameOrId("endDevices")
+			if err != nil {
 				return err
 			}
 
