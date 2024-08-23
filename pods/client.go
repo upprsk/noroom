@@ -186,9 +186,31 @@ func (c *Client) methodListPods(ctx context.Context, msg messageRequest) error {
 }
 
 func (c *Client) methodCreatePod(ctx context.Context, msg messageRequest) error {
+	if len(msg.Args) != 1 {
+		return fmt.Errorf(
+			"invalid number of arguments to createPod method, expected 1, got %v",
+			len(msg.Args),
+		)
+	}
+
+	name, ok := msg.Args[0].(string)
+	if !ok {
+		return fmt.Errorf(
+			"invalid arguments to createPod method, expected string at [0], got %v",
+			msg.Args[0],
+		)
+	}
+
+	fmt.Println("name:", name)
+
+	id, err := c.central.ContainerCreate(ctx)
+	if err != nil {
+		return err
+	}
+
 	return c.sendMessage(messageResponse{
-		Id:  msg.Id,
-		Err: fmt.Errorf("not implemented").Error(),
+		Id:   msg.Id,
+		Body: map[string]string{"id": id},
 	})
 }
 

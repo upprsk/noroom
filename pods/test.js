@@ -72,7 +72,10 @@ ws.onopen = () => {
   c.send({ method: "open" }, false);
 
   (async () => {
-    const res = await c.send({ method: "listPods" });
-    console.log("listPods:", res);
+    const pods = await c.send({ method: "listPods" });
+    console.log("listPods:", pods);
+
+    const create = await c.send({ method: "createPod", args: ["basic"] });
+    console.log("createPod:", create);
   })();
 };

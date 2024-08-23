@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 
-	containertypes "github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
 )
 
@@ -27,7 +27,7 @@ func (c *Central) Close() {
 }
 
 func (c *Central) ContainersList(ctx context.Context) ([]string, error) {
-	containers, err := c.docker.ContainerList(ctx, containertypes.ListOptions{})
+	containers, err := c.docker.ContainerList(ctx, container.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -38,4 +38,16 @@ func (c *Central) ContainersList(ctx context.Context) ([]string, error) {
 	}
 
 	return ids, nil
+}
+
+func (c *Central) ContainerCreate(ctx context.Context) (string, error) {
+	resp, err := c.docker.ContainerCreate(ctx, &container.Config{
+		Image: "alpine",
+		Cmd:   []string{"sh"},
+	}, nil, nil, nil, "")
+	if err != nil {
+		return "", err
+	}
+
+	return resp.ID, nil
 }
