@@ -17,7 +17,7 @@
 >
   <svelte:fragment slot="title">Anexar arquivos</svelte:fragment>
 
-  <div class="flex w-full gap-2">
+  <div class="flex w-full gap-2 flex-wrap">
     {#each data.klass.attachments as attach}
       <div class="badge badge-ghost">
         <svg class="w-4 h-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"
