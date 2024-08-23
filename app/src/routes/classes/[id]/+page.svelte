@@ -32,8 +32,6 @@
         .find(([, a]) => a === filename);
       if (!s) return `<img alt="${token.text}" href="${token.href}"></img>`;
 
-      console.log(getFileUrl(data.klass, s[0]));
-
       return `<img alt="${token.text}" src="${getFileUrl(data.klass, s[0])}"></img>`;
     },
   };
