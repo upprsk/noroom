@@ -161,7 +161,7 @@
         "id": "oiykay6i",
         "name": "owner",
         "type": "relation",
-        "required": false,
+        "required": true,
         "presentable": false,
         "unique": false,
         "options": {
@@ -206,7 +206,7 @@
         "id": "qqx2ufzg",
         "name": "owners",
         "type": "relation",
-        "required": false,
+        "required": true,
         "presentable": false,
         "unique": false,
         "options": {
