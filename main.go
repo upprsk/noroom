@@ -40,7 +40,6 @@ func main() {
 
 		info := apis.RequestInfo(e.HttpContext)
 		e.Record.Set("owner", info.AuthRecord.Id)
-		fmt.Println("owner:", info.AuthRecord.Id)
 
 		return nil
 	})
