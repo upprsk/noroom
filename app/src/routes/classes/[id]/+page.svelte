@@ -94,6 +94,7 @@
   {/if}
 
   <div class="card-actions justify-end">
+    <button type="button" class="btn" on:click={() => history.back()}>voltar</button>
     {#if $currentUser?.id === data.klass.owner || $currentUser?.role === 'editor'}
       <a href="{data.klass.id}/edit" class="btn btn-primary">editar</a>
     {/if}
