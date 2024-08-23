@@ -19,10 +19,6 @@
       <button class="btn btn-ghost btn-sm">Logout</button>
     </form>
 
-    {#if $currentUser.role === 'editor'}
-      <a href="/classes/new" class="btn btn-primary btn-sm">criar</a>
-    {/if}
-
     <BasicAvatar href="/account" user={$currentUser} />
   {:else}
     <a href="/login" class="btn-sm btn btn-ghost">Sign-In</a>
