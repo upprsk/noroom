@@ -162,8 +162,8 @@
     "indexes": [
       "CREATE UNIQUE INDEX `idx_mBheBOW` ON `classPresenceEntries` (\n  `fingerprint`,\n  `class`\n)"
     ],
-    "listRule": null,
-    "viewRule": null,
+    "listRule": "@request.auth.id != ''",
+    "viewRule": "@request.auth.id != ''",
     "createRule": null,
     "updateRule": null,
     "deleteRule": null,
@@ -232,22 +232,6 @@
           "cascadeDelete": false,
           "minSelect": null,
           "maxSelect": 1,
-          "displayFields": null
-        }
-      },
-      {
-        "system": false,
-        "id": "lb4kxole",
-        "name": "present",
-        "type": "relation",
-        "required": false,
-        "presentable": false,
-        "unique": false,
-        "options": {
-          "collectionId": "_pb_users_auth_",
-          "cascadeDelete": false,
-          "minSelect": null,
-          "maxSelect": null,
           "displayFields": null
         }
       },

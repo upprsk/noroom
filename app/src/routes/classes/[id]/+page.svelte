@@ -10,6 +10,8 @@
   import 'prismjs/components/prism-json';
   import 'prismjs/themes/prism-tomorrow.css';
   import DOMPurify from 'dompurify';
+  import { onMount } from 'svelte';
+  import BasicAvatarNoLink from '$lib/components/BasicAvatarNoLink.svelte';
 
   Prism.manual = true;
 
@@ -60,6 +62,11 @@
   );
 
   export let data;
+
+  let sanitize: undefined | ((s: string) => void);
+  onMount(async () => {
+    sanitize = DOMPurify.sanitize;
+  });
 </script>
 
 <BasicCard>
@@ -69,18 +76,21 @@
     <!-- {@html htmlContent} -->
     {#await marked.parse(data.klass.content)}
       <!-- promise is pending -->
+      pending...
     {:then value}
-      {@html DOMPurify.sanitize(value)}
+      {#if sanitize}
+        {@html DOMPurify.sanitize(value)}
+      {/if}
     {/await}
   </div>
 
   {#if data.klass.attachments.length > 0}
     <div class="divider"></div>
 
-    <div class="flex w-full gap-2 flex-wrap">
+    <div class="flex w-full flex-wrap gap-2">
       {#each data.klass.attachments as attach}
         <a href={getFileUrl(data.klass, attach)} class="btn btn-sm">
-          <svg class="w-4 h-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"
+          <svg class="h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"
             ><path
               d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Z"
             ></path></svg
@@ -88,6 +98,30 @@
           {attach}
         </a>
       {/each}
+    </div>
+  {/if}
+
+  {#if data.klass.expand?.classPresenceEntries_via_class && data.klass.expand?.classPresenceEntries_via_class.length > 0}
+    <div class="divider"></div>
+
+    <div class="flex w-full flex-wrap items-center">
+      {#if data.klass?.expand?.classPresenceEntries_via_class}
+        <div class="avatar-group -space-x-6 p-2 rtl:space-x-reverse">
+          {#each data.klass.expand.classPresenceEntries_via_class as presence}
+            <BasicAvatarNoLink user={presence.expand.user} />
+          {/each}
+
+          <div class="avatar placeholder">
+            <div class="w-10 bg-neutral text-neutral-content">
+              <span>{data.klass.expand.classPresenceEntries_via_class.length}</span>
+            </div>
+          </div>
+        </div>
+
+        {#if data.klass.expand.classPresenceEntries_via_class.find((p) => p.user === $currentUser?.id)}
+          <div class="badge badge-success">Presente</div>
+        {/if}
+      {/if}
     </div>
   {/if}
 

@@ -1,5 +1,4 @@
 import { PUBLIC_POCKETBASE_URL } from '$env/static/public';
-import { dev } from '$app/environment';
 import { browser } from '$app/environment';
 import PocketBase, {
   ClientResponseError,
@@ -11,7 +10,7 @@ import { setError, type Infer, type SuperValidated } from 'sveltekit-superforms'
 import type { z } from 'zod';
 
 export function createInstance() {
-  if (browser && !dev) return new PocketBase();
+  if (browser) return new PocketBase('/');
   return new PocketBase(PUBLIC_POCKETBASE_URL);
 }
 

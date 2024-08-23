@@ -9,6 +9,8 @@
 
   export let data;
 
+  // --------------------------------------------------------------------------
+
   let unsub: () => void;
   const sub = async () => {
     unsub = await pb
@@ -18,6 +20,8 @@
         (e) => (data.devices = updateFromEvent(e, zEndDeviceSchema, data.devices)),
       );
   };
+
+  // --------------------------------------------------------------------------
 
   onMount(() => {
     sub();
@@ -37,7 +41,7 @@
     {/if}
   </svelte:fragment>
   {#if data.user}
-    <h5 class="text-slate-400 text-xs italic">@{data.user.username} - {data.user.email}</h5>
+    <h5 class="text-xs italic text-slate-400">@{data.user.username} - {data.user.email}</h5>
 
     <div class="h-2"></div>
 
@@ -46,8 +50,8 @@
     </p>
 
     <div class="flex gap-2">
-      <button class="btn btn-sm btn-warning">trocar email</button>
-      <button class="btn btn-sm btn-warning">trocar senha</button>
+      <button type="button" class="btn btn-warning btn-sm">trocar email</button>
+      <button type="button" class="btn btn-warning btn-sm">trocar senha</button>
     </div>
 
     <div class="divider"></div>
@@ -55,7 +59,7 @@
     <h4 class="card-title">Seus dispositivos</h4>
     <ul class="mx-5">
       {#each data.devices as dev (dev.id)}
-        <li class="border-b last:border-b-0 py-5">
+        <li class="border-b py-5 last:border-b-0">
           <div>
             <span>
               <b>{dev.deviceData?.system.browser.name} {dev.deviceData?.system.browser.version}</b>

@@ -9,10 +9,7 @@ export const load: ServerLoad = async ({ locals, params, fetch }) => {
 
   const classP = pb
     .collection('classes')
-    .getOne(id, {
-      fetch,
-      expand: 'classPresenceEntries_via_class,classPresenceEntries_via_class.user',
-    })
+    .getOne(id, { fetch })
     .then((r) => zClassWithPresenceSchema.parse(r));
 
   const [klass] = await Promise.all([classP]);

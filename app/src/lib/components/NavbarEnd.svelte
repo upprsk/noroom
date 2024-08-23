@@ -2,6 +2,7 @@
   import { applyAction, enhance } from '$app/forms';
   import { pb } from '$lib/pocketbase';
   import { currentUser } from '$lib/stores/user';
+  import { clrLastTrackedTime } from '$lib/tracking';
   import BasicAvatar from './BasicAvatar.svelte';
 </script>
 
@@ -13,6 +14,7 @@
       use:enhance={() =>
         async ({ result }) => {
           pb.authStore.clear();
+          clrLastTrackedTime();
           await applyAction(result);
         }}
     >
@@ -21,7 +23,7 @@
 
     <BasicAvatar href="/account" user={$currentUser} />
   {:else}
-    <a href="/login" class="btn-sm btn btn-ghost">Sign-In</a>
-    <a href="/register" class="btn-sm btn btn-accent">Sign-Up</a>
+    <a href="/login" class="btn btn-ghost btn-sm">Sign-In</a>
+    <a href="/register" class="btn btn-accent btn-sm">Sign-Up</a>
   {/if}
 </div>

@@ -97,11 +97,35 @@ export const zLogin = z.object({
   password: z.string(),
 });
 
+export const zClassPresence = zModelBase.extend({
+  class: z.string(),
+  fingerprint: z.string(),
+  user: z.string(),
+});
+
+export const zClassPresenceWithUser = zClassPresence.extend({
+  expand: z.object({
+    user: zUserSchema,
+  }),
+});
+
 export const zClassSchema = zModelBase.extend({
   title: z.string(),
   content: z.string(),
   attachments: z.string().array(),
   owner: z.string(),
+  live: z.boolean(),
+  latitude: z.number(),
+  longitude: z.number(),
+  radius: z.number(),
+});
+
+export const zClassWithPresenceSchema = zClassSchema.extend({
+  expand: z
+    .object({
+      classPresenceEntries_via_class: zClassPresenceWithUser.array(),
+    })
+    .optional(),
 });
 
 export const zFileUploadSchema = z.object({

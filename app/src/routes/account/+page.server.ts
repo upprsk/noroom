@@ -1,10 +1,12 @@
 import { zEndDeviceSchema } from '$lib/models';
-import type { ServerLoad } from '@sveltejs/kit';
+import { redirect, type ServerLoad } from '@sveltejs/kit';
 
 const zDevices = zEndDeviceSchema.array();
 
 export const load: ServerLoad = async ({ locals, fetch }) => {
-  const { pb } = locals;
+  const { pb, user } = locals;
+
+  if (!user) redirect(303, '/');
 
   const devicesP = pb
     .collection('endDevices')
