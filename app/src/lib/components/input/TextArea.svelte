@@ -31,7 +31,7 @@
     <span class="label-text"><slot /></span>
   </div>
   <textarea
-    class="textarea textarea-bordered w-full max-w-xl min-h-52"
+    class="textarea textarea-bordered w-full max-w-xl min-h-52 font-mono"
     on:keydown={onKeydown}
     aria-invalid={errors ? 'true' : undefined}
     bind:value
