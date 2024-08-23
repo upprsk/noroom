@@ -24,12 +24,12 @@
       const m = token.href.match(/^\.\/(.+?)\.\w+$/);
       if (!m) return `<img alt="${token.text}" href="${token.href}"></img>`;
 
-      const [_, filename] = m;
+      const [, filename] = m;
 
       const s = data.klass.attachments
         .map((a) => a.match(/^(.+?)_\w{10}\.\w+$/))
         .filter((a) => a !== null)
-        .find(([_, a]) => a === filename);
+        .find(([, a]) => a === filename);
       if (!s) return `<img alt="${token.text}" href="${token.href}"></img>`;
 
       console.log(getFileUrl(data.klass, s[0]));
