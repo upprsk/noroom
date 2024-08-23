@@ -9,6 +9,15 @@ import (
 
 type Central struct {
 	docker *client.Client
+
+	// registered clients
+	clients map[*Client]struct{}
+
+	// register events from clients
+	register chan *Client
+
+	// unregister events from clients
+	unregister chan *Client
 }
 
 func NewCentral(ctx context.Context) (*Central, error) {
@@ -18,12 +27,37 @@ func NewCentral(ctx context.Context) (*Central, error) {
 	}
 
 	return &Central{
-		docker: docker,
+		docker:     docker,
+		clients:    map[*Client]struct{}{},
+		register:   make(chan *Client),
+		unregister: make(chan *Client),
 	}, nil
 }
 
 func (c *Central) Close() {
 	c.docker.Close()
+}
+
+func (c *Central) Start() {
+	for {
+		select {
+		case client := <-c.register:
+			c.clients[client] = struct{}{}
+		case client := <-c.register:
+			if _, ok := c.clients[client]; ok {
+				delete(c.clients, client)
+				close(client.send)
+			}
+		}
+	}
+}
+
+func (c *Central) Register(cli *Client) {
+	c.register <- cli
+}
+
+func (c *Central) Unregister(cli *Client) {
+	c.unregister <- cli
 }
 
 func (c *Central) ContainersList(ctx context.Context) ([]string, error) {
@@ -50,4 +84,7 @@ func (c *Central) ContainerCreate(ctx context.Context) (string, error) {
 	}
 
 	return resp.ID, nil
+}
+
+func (c *Central) ContainerStart(ctx context.Context) {
 }

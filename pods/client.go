@@ -50,6 +50,7 @@ func NewClient(central *Central, conn *websocket.Conn) *Client {
 func (c *Client) readPump() {
 	defer func() {
 		c.conn.Close()
+		c.central.Unregister(c)
 	}()
 
 	c.conn.SetReadLimit(maxMessageSize)
@@ -145,6 +146,7 @@ func (c *Client) parseMessage(data []byte) error {
 		}
 
 		c.opened = true
+		c.central.Register(c)
 		return nil
 	}
 

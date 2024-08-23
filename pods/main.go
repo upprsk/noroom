@@ -19,6 +19,9 @@ func main() {
 	if err != nil {
 		log.Fatal("NewCentral:", err)
 	}
+	defer central.Close()
+
+	go central.Start()
 
 	http.HandleFunc("/", serveTest)
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
