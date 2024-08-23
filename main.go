@@ -44,6 +44,21 @@ func main() {
 		return nil
 	})
 
+	app.OnRecordBeforeUpdateRequest("classes").Add(func(e *core.RecordUpdateEvent) error {
+		admin, _ := e.HttpContext.Get(apis.ContextAdminKey).(*models.Admin)
+		if admin != nil {
+			return nil // ignore for admins
+		}
+
+		original := e.Record.OriginalCopy()
+
+		if original.GetString("owner") != e.Record.GetString("owner") {
+			return apis.NewBadRequestError("can't change owner of class", nil)
+		}
+
+		return nil
+	})
+
 	app.OnRecordBeforeCreateRequest("user").Add(func(e *core.RecordCreateEvent) error {
 		admin, _ := e.HttpContext.Get(apis.ContextAdminKey).(*models.Admin)
 		if admin != nil {
