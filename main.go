@@ -300,6 +300,8 @@ func makeApiNoroomPresence(app *pocketbase.PocketBase, validate *validator.Valid
 	}
 }
 
+// https://www.movable-type.co.uk/scripts/latlong.html
+//
 // This uses the ‘haversine’ formula to calculate the great-circle distance
 // between two points – that is, the shortest distance over the earth’s surface
 // – giving an ‘as-the-crow-flies’ distance between the points (ignoring any
