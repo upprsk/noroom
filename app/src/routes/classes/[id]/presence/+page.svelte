@@ -46,12 +46,10 @@
         },
       });
 
-      console.log(res);
       presenceStatus = `Presenca atualizada para ${res.user} (${res.dist}m)`;
     } catch (e) {
       if (e instanceof ClientResponseError) {
         presenceError = `Erro ao aplicar presenca: ${e.message}`;
-        console.log(e.data);
       } else {
         presenceError = `Erro ao aplicar presenca: ${e}`;
       }
