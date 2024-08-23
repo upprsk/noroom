@@ -18,6 +18,8 @@ export const load: ServerLoad = async ({ locals }) => {
 
 export const actions: Actions = {
   default: async ({ locals, request }) => {
+    const { user, pb } = locals;
+
     const form = await superValidate(request, zod(zFormSchema));
 
     if (!form.valid) {
@@ -26,7 +28,7 @@ export const actions: Actions = {
     }
 
     try {
-      await locals.pb.collection('classes').create(form.data);
+      await pb.collection('classes').create({ ...form.data, owner: user!.id });
     } catch (e) {
       return processError(form, e, zErrorSchema);
     }

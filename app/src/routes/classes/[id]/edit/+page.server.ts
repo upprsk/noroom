@@ -38,7 +38,7 @@ export const actions: Actions = {
     }
 
     try {
-      await pb.collection('classes').update(id, form.data);
+      await pb.collection('classes').update(id, { ...form.data, owner: undefined });
     } catch (e) {
       return processError(form, e, zErrorSchema);
     }
