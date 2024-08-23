@@ -3,6 +3,7 @@
 </script>
 
 <ul class="menu {$$props.class}" {...$$props.restArguments}>
+  <li><a href="/users">Alunos</a></li>
   {#if $currentUser}
     {#if $currentUser.role === 'editor'}
       <li>

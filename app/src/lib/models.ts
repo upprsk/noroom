@@ -25,7 +25,7 @@ export const zMakeErrorDataSchema = <T extends z.ZodTypeAny>(keys: T) =>
 
 export const zUserSchema = zModelBase.extend({
   username: z.string(),
-  email: z.string().email(),
+  email: z.string().email().optional(),
   emailVisibility: z.boolean(),
   verified: z.boolean(),
   name: z.string(),

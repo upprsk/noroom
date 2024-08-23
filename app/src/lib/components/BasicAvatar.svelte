@@ -1,17 +1,10 @@
 <script lang="ts">
+  import { placeholderLetters } from '$lib';
   import type { UserModel } from '$lib/models';
   import { getFileUrl } from '$lib/pocketbase';
 
   export let user: UserModel;
   export let href: string;
-
-  const placeholderLetters = (name: string) =>
-    name
-      .split(' ')
-      .filter((w) => w !== '')
-      .map((w) => w[0])
-      .join('')
-      .toUpperCase();
 </script>
 
 {#if user.avatar !== ''}
