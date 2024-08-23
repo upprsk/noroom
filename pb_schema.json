@@ -89,7 +89,7 @@
     "indexes": [
       "CREATE UNIQUE INDEX `idx_arCCj9B` ON `users` (\n  `mat`,\n  `curso`\n)"
     ],
-    "listRule": "id = @request.auth.id",
+    "listRule": "",
     "viewRule": "id = @request.auth.id",
     "createRule": "",
     "updateRule": "id = @request.auth.id",
@@ -206,7 +206,7 @@
         "id": "qqx2ufzg",
         "name": "owners",
         "type": "relation",
-        "required": true,
+        "required": false,
         "presentable": false,
         "unique": false,
         "options": {
