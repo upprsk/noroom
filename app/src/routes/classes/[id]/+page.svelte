@@ -2,7 +2,7 @@
   import BasicCard from '$lib/components/BasicCard.svelte';
   import { getFileUrl } from '$lib/pocketbase.js';
   import { currentUser } from '$lib/stores/user';
-  import { Marked } from 'marked';
+  import { Marked, Renderer, type Tokens } from 'marked';
   import { markedHighlight } from 'marked-highlight';
   import Prism from 'prismjs';
   import 'prismjs/components/prism-c';
@@ -13,7 +13,33 @@
 
   Prism.manual = true;
 
+  const renderer = {
+    html(this: Renderer, token: Tokens.HTML | Tokens.Tag): string {
+      const re = /^<!--\s+end_slide\s+-->/;
+      if (!re.test(token.text)) return token.text;
+
+      return `<div class="divider"></div>`;
+    },
+    image(this: Renderer, token: Tokens.Image): string {
+      const m = token.href.match(/^\.\/(.+?)\.\w+$/);
+      if (!m) return `<img alt="${token.text}" href="${token.href}"></img>`;
+
+      const [_, filename] = m;
+
+      const s = data.klass.attachments
+        .map((a) => a.match(/^(.+?)_\w{10}\.\w+$/))
+        .filter((a) => a !== null)
+        .find(([_, a]) => a === filename);
+      if (!s) return `<img alt="${token.text}" href="${token.href}"></img>`;
+
+      console.log(getFileUrl(data.klass, s[0]));
+
+      return `<img alt="${token.text}" src="${getFileUrl(data.klass, s[0])}"></img>`;
+    },
+  };
+
   const marked = new Marked(
+    { renderer },
     markedHighlight({
       langPrefix: 'language-',
       highlight(code, lang) {
