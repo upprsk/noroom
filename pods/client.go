@@ -47,6 +47,62 @@ func NewClient(central *Central, conn *websocket.Conn) *Client {
 	}
 }
 
+type messageRequest struct {
+	Id     int             `json:"id"`
+	Method string          `json:"method"`
+	Args   json.RawMessage `json:"args"`
+	// Args   []any  `json:"args"`
+}
+
+type messageResponseCommon struct {
+	Id  int    `json:"id"`
+	Err string `json:"err"`
+}
+
+type messageResponseListPods struct {
+	messageResponseCommon
+	Pods []string `json:"pods"`
+}
+
+type messageResponseWithId struct {
+	messageResponseCommon
+	PodId string `json:"podId"`
+}
+
+func newMessageErr(id int, err error) messageResponseCommon {
+	if err == nil {
+		return messageResponseCommon{Id: id}
+	}
+
+	return messageResponseCommon{
+		Id:  id,
+		Err: err.Error(),
+	}
+}
+
+func newMessageListPods(id int, pods []string) messageResponseListPods {
+	return messageResponseListPods{
+		messageResponseCommon: messageResponseCommon{Id: id},
+		Pods:                  pods,
+	}
+}
+
+func newMessageWithId(id int, podId string) messageResponseWithId {
+	return messageResponseWithId{
+		messageResponseCommon: messageResponseCommon{Id: id},
+		PodId:                 podId,
+	}
+}
+
+func newMessageEmpty(id int) messageResponseCommon {
+	return messageResponseCommon{Id: id}
+}
+
+type messageEvent struct {
+	Name string `json:"name"`
+	Body any    `json:"body"`
+}
+
 func (c *Client) readPump() {
 	defer func() {
 		c.conn.Close()
@@ -119,20 +175,7 @@ func (c *Client) writePump() {
 	}
 }
 
-type messageRequest struct {
-	Id     int    `json:"id"`
-	Method string `json:"method"`
-	Args   []any  `json:"args"`
-}
-
-type messageResponse struct {
-	Id   int    `json:"id"`
-	Body any    `json:"body"`
-	Err  string `json:"err"`
-}
-
 func (c *Client) parseMessage(data []byte) error {
-
 	var msg messageRequest
 	fmt.Println("data:", string(data), "msg", msg)
 
@@ -164,6 +207,10 @@ func (c *Client) parseMessage(data []byte) error {
 		return c.methodListPods(ctx, msg)
 	case "createPod":
 		return c.methodCreatePod(ctx, msg)
+	case "attachToPod":
+		return c.methodAttachToPod(ctx, msg)
+	case "sendToPod":
+		return c.methodSendToPod(ctx, msg)
 	}
 
 	return nil
@@ -175,48 +222,86 @@ func (c *Client) methodListPods(ctx context.Context, msg messageRequest) error {
 
 	pods, err := c.central.ContainersList(ctx)
 	if err != nil {
-		return c.sendMessage(messageResponse{
-			Id:  msg.Id,
-			Err: err.Error(),
-		})
+		return c.sendMessage(newMessageErr(msg.Id, err))
 	}
 
-	return c.sendMessage(messageResponse{
-		Id:   msg.Id,
-		Body: pods,
-	})
+	return c.sendMessage(newMessageListPods(msg.Id, pods))
 }
 
 func (c *Client) methodCreatePod(ctx context.Context, msg messageRequest) error {
-	if len(msg.Args) != 1 {
+	var args []string
+	if err := json.Unmarshal(msg.Args, &args); err != nil {
+		return err
+	}
+
+	if len(args) != 1 {
 		return fmt.Errorf(
 			"invalid number of arguments to createPod method, expected 1, got %v",
 			len(msg.Args),
 		)
 	}
 
-	name, ok := msg.Args[0].(string)
-	if !ok {
+	id, err := c.central.ContainerCreate(ctx, args[0])
+	if err != nil {
+		return c.sendMessage(newMessageErr(msg.Id, err))
+	}
+
+	return c.sendMessage(newMessageWithId(msg.Id, id))
+}
+
+func (c *Client) methodAttachToPod(ctx context.Context, msg messageRequest) error {
+	var args []string
+	if err := json.Unmarshal(msg.Args, &args); err != nil {
+		return err
+	}
+
+	if len(args) != 1 {
 		return fmt.Errorf(
-			"invalid arguments to createPod method, expected string at [0], got %v",
-			msg.Args[0],
+			"invalid number of arguments to createPod method, expected 1, got %v",
+			len(msg.Args),
 		)
 	}
 
-	fmt.Println("name:", name)
+	err := c.central.ContainerAttach(ctx, args[0], c)
+	if err != nil {
+		return c.sendMessage(newMessageErr(msg.Id, err))
+	}
 
-	id, err := c.central.ContainerCreate(ctx)
+	return c.sendMessage(newMessageWithId(msg.Id, args[0]))
+}
+
+func (c *Client) methodSendToPod(ctx context.Context, msg messageRequest) error {
+	var args [][]byte
+	if err := json.Unmarshal(msg.Args, &args); err != nil {
+		return err
+	}
+
+	if len(args) != 1 {
+		return fmt.Errorf(
+			"invalid number of arguments to createPod method, expected 1, got %v",
+			len(msg.Args),
+		)
+	}
+
+	err := c.central.containerSend(c, args[0])
+	if err != nil {
+		return c.sendMessage(newMessageErr(msg.Id, err))
+	}
+
+	return c.sendMessage(newMessageEmpty(msg.Id))
+}
+
+func (c *Client) sendMessage(msg any) error {
+	data, err := json.Marshal(msg)
 	if err != nil {
 		return err
 	}
 
-	return c.sendMessage(messageResponse{
-		Id:   msg.Id,
-		Body: map[string]string{"id": id},
-	})
+	c.send <- data
+	return nil
 }
 
-func (c *Client) sendMessage(msg messageResponse) error {
+func (c *Client) SendEvent(msg messageEvent) error {
 	data, err := json.Marshal(msg)
 	if err != nil {
 		return err

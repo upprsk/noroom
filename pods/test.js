@@ -1,4 +1,20 @@
-const ws = new WebSocket(`ws://localhost:8080/ws`);
+const connectedSpan = document.getElementById("connected-span");
+const connectedErrorDiv = document.getElementById("connected-error-div");
+const refreshPodsButton = document.getElementById("refresh-pods-button");
+const podListUl = document.getElementById("pod-list-ul");
+const podOutputCode = document.getElementById("pod-output-code");
+const createPodInput = document.getElementById("create-pod-input");
+const createPodButton = document.getElementById("create-pod-button");
+const createPodP = document.getElementById("create-pod-p");
+const attachPodInput = document.getElementById("attach-pod-input");
+const attachPodButton = document.getElementById("attach-pod-button");
+const attachPodP = document.getElementById("attach-pod-p");
+const sendPodForm = document.getElementById("send-pod-form");
+const sendPodInput = document.getElementById("send-pod-input");
+const sendPodButton = document.getElementById("send-pod-button");
+const podCtrlCButton = document.getElementById("pod-ctrl+c-button");
+
+connectedErrorDiv.innerHTML = ``;
 
 /**
  * @param ws {WebSocket}
@@ -23,22 +39,27 @@ const makeClient = (ws) => {
         });
       }
     },
+    /**
+     * @param data {string}
+     */
     recv(data) {
-      const obj = JSON.parse(data);
-      if (obj.id) {
-        const req = this.live.get(obj.id);
-        this.live.delete(obj.id);
+      for (const line of data.split("\n")) {
+        const obj = JSON.parse(line);
+        if (obj.id) {
+          const req = this.live.get(obj.id);
+          this.live.delete(obj.id);
 
-        if (req) {
-          const [resolve, reject] = req;
+          if (req) {
+            const [resolve, reject] = req;
 
-          if (obj.err) reject(obj);
-          else resolve(obj);
+            if (obj.err) reject(obj);
+            else resolve(obj);
+          } else {
+            console.error("message not found:", obj, obj);
+          }
         } else {
-          console.error("message not found:", obj, obj);
+          this.onRecv(obj);
         }
-      } else {
-        this.onRecv(obj);
       }
     },
     onRecv() {},
@@ -48,34 +69,113 @@ const makeClient = (ws) => {
   };
 };
 
+const ws = new WebSocket(`ws://localhost:8080/ws`);
+window.onbeforeunload = () => {
+  connectedSpan.innerText = "no";
+  ws.close();
+};
+
+let c = makeClient(ws);
+
 ws.onclose = () => {
-  console.log("close");
+  connectedSpan.innerText = "no";
 };
 
 ws.onerror = (e) => {
   console.error("error", e);
+
+  connectedErrorDiv.innerHTML = `<p>Error in connection: ${e}</p>`;
 };
 
 ws.onopen = () => {
-  console.log("open");
+  connectedSpan.innerText = "connecting...";
+  connectedErrorDiv.innerText = "";
 
-  const c = makeClient(ws);
   ws.onmessage = (e) => {
-    console.log(e.data);
     c.recv(e.data);
   };
 
   c.onRecv = (obj) => {
-    console.log("got event:", obj);
+    if (obj.name === "podOut") {
+      const txt = atob(obj.body.data);
+      podOutputCode.innerText = podOutputCode.innerText + txt;
+    }
   };
 
   c.send({ method: "open" }, false);
+  connectedSpan.innerText = "connected";
 
   (async () => {
-    const pods = await c.send({ method: "listPods" });
-    console.log("listPods:", pods);
-
-    const create = await c.send({ method: "createPod", args: ["basic"] });
-    console.log("createPod:", create);
+    await updatePods();
   })();
+};
+
+const updatePods = async () => {
+  const res = await c.send({ method: "listPods" });
+
+  const one = (id) => `<li>${id}</li>`;
+  podListUl.innerHTML = res.pods.map(one);
+
+  return res;
+};
+
+/**
+ * @param name {string}
+ */
+const createPod = async (name) => {
+  createPodP.innerText = "";
+
+  try {
+    const res = await c.send({ method: "createPod", args: [name] });
+    createPodP.innerText = `Created pod with id: ${res.podId}`;
+  } catch (e) {
+    console.error(e);
+    createPodP.innerText = `Failed to create pod with name "${name}": ${e.err}`;
+  }
+};
+
+/**
+ * @param name {string}
+ */
+const attachPod = async (name) => {
+  attachPodP.innerText = "";
+
+  try {
+    const res = await c.send({ method: "attachToPod", args: [name] });
+    attachPodP.innerText = `attached to pod with id: ${res.podId}`;
+  } catch (e) {
+    console.error(e);
+    attachPodP.innerText = `Failed to attach to pod with name "${name}": ${e.err}`;
+  }
+};
+
+/**
+ * @param cmd {string}
+ */
+const sendPod = async (cmd) => {
+  try {
+    await c.send({ method: "sendToPod", args: [btoa(cmd)] });
+  } catch (e) {
+    console.error(e);
+  }
+};
+
+refreshPodsButton.onclick = updatePods;
+createPodButton.onclick = async () => {
+  await createPod(createPodInput.value);
+  createPodInput.value = "";
+};
+attachPodButton.onclick = async () => {
+  await attachPod(attachPodInput.value);
+  attachPodInput.value = "";
+};
+sendPodForm.onsubmit = async (e) => {
+  e.preventDefault();
+
+  await sendPod(sendPodInput.value + "\n");
+  sendPodInput.value = "";
+  sendPodInput.focus();
+};
+podCtrlCButton.onclick = async () => {
+  await sendPod("\x03");
 };
