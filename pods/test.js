@@ -107,14 +107,21 @@ ws.onopen = () => {
 
   (async () => {
     await updatePods();
+
+    // await c.send({
+    //   method: "uploadToPod",
+    //   args: ["bob", "/home/hello.txt", btoa("hello there!")],
+    // });
   })();
 };
 
 const updatePods = async () => {
   const res = await c.send({ method: "listPods" });
+  console.log(res.body.pods);
 
-  const one = (id) => `<li>${id}</li>`;
-  podListUl.innerHTML = res.pods.map(one);
+  const one = ({ names, state, image, status }) =>
+    `<li><b>${names.join(", ")}</b> - ${image} - ${state}: ${status}</li>`;
+  podListUl.innerHTML = res.body.pods.map(one);
 
   return res;
 };
@@ -127,7 +134,7 @@ const createPod = async (name) => {
 
   try {
     const res = await c.send({ method: "createPod", args: [name] });
-    createPodP.innerText = `Created pod with id: ${res.podId}`;
+    createPodP.innerText = `Created pod with id: ${res.body.podId}`;
   } catch (e) {
     console.error(e);
     createPodP.innerText = `Failed to create pod with name "${name}": ${e.err}`;
@@ -142,7 +149,7 @@ const attachPod = async (name) => {
 
   try {
     const res = await c.send({ method: "attachToPod", args: [name] });
-    attachPodP.innerText = `attached to pod with id: ${res.podId}`;
+    attachPodP.innerText = `attached to pod with id: ${res.body.podId}`;
   } catch (e) {
     console.error(e);
     attachPodP.innerText = `Failed to attach to pod with name "${name}": ${e.err}`;

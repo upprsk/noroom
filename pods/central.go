@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"strings"
 
@@ -69,18 +70,35 @@ func (c *Central) Unregister(cli *Client) {
 	c.unregister <- cli
 }
 
-func (c *Central) ContainersList(ctx context.Context) ([]string, error) {
-	containers, err := c.docker.ContainerList(ctx, container.ListOptions{})
+type PodInfo struct {
+	Id     string   `json:"id"`
+	Names  []string `json:"names"`
+	Image  string   `json:"image"`
+	Status string   `json:"status"`
+	State  string   `json:"state"`
+}
+
+func (c *Central) ContainersList(ctx context.Context) ([]PodInfo, error) {
+	containers, err := c.docker.ContainerList(ctx, container.ListOptions{
+		Size: true,
+		All:  true,
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	var ids []string
-	for _, container := range containers {
-		ids = append(ids, container.ID)
+	info := make([]PodInfo, len(containers))
+	for idx, cont := range containers {
+		info[idx] = PodInfo{
+			Id:     cont.ID,
+			Names:  cont.Names,
+			Image:  cont.Image,
+			Status: cont.Status,
+			State:  cont.State,
+		}
 	}
 
-	return ids, nil
+	return info, nil
 }
 
 func (c *Central) ContainerCreate(ctx context.Context, name string) (string, error) {
@@ -142,6 +160,26 @@ func (c *Central) ContainerAttach(ctx context.Context, id string, cli *Client) e
 	return nil
 }
 
+func (c *Central) ContainerRestart(ctx context.Context, id string) error {
+	return c.docker.ContainerRestart(ctx, id, container.StopOptions{})
+}
+
+func (c *Central) ContainerStop(ctx context.Context, id string) error {
+	return c.docker.ContainerStop(ctx, id, container.StopOptions{})
+}
+
+func (c *Central) ContainerRemove(ctx context.Context, id string) error {
+	return c.docker.ContainerRemove(ctx, id, container.RemoveOptions{})
+}
+
+func (c *Central) ContainerCopyTo(ctx context.Context, id, dstPath string, content io.Reader) error {
+	return c.docker.CopyToContainer(ctx, id, dstPath, content, container.CopyToContainerOptions{})
+}
+
+func (c *Central) ContainerCopyFrom(ctx context.Context, id, srcPath string) (io.ReadCloser, container.PathStat, error) {
+	return c.docker.CopyFromContainer(ctx, id, srcPath)
+}
+
 func (c *Central) containerSend(cli *Client, data []byte) error {
 	cliData, ok := c.clients[cli]
 	if !ok {
@@ -195,12 +233,15 @@ type clientData struct {
 }
 
 func (c *clientData) Send(data []byte) {
-	c.send <- data
+	if c.stream.Conn != nil {
+		c.send <- data
+	}
 }
 
 func (c *clientData) Close() {
 	if c.stream.Conn != nil {
 		c.stream.Close()
+		c.stream.Conn = nil
 	}
 }
 

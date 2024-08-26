@@ -1,11 +1,14 @@
 package main
 
 import (
+	"archive/tar"
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
+	"path"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -51,51 +54,38 @@ type messageRequest struct {
 	Id     int             `json:"id"`
 	Method string          `json:"method"`
 	Args   json.RawMessage `json:"args"`
-	// Args   []any  `json:"args"`
 }
 
-type messageResponseCommon struct {
-	Id  int    `json:"id"`
-	Err string `json:"err"`
+type messageResponse struct {
+	Id   int    `json:"id"`
+	Err  string `json:"err"`
+	Body any    `json:"body"`
 }
 
-type messageResponseListPods struct {
-	messageResponseCommon
-	Pods []string `json:"pods"`
-}
-
-type messageResponseWithId struct {
-	messageResponseCommon
-	PodId string `json:"podId"`
-}
-
-func newMessageErr(id int, err error) messageResponseCommon {
+func newMessageErr(id int, err error) messageResponse {
 	if err == nil {
-		return messageResponseCommon{Id: id}
+		return messageResponse{Id: id}
 	}
 
-	return messageResponseCommon{
-		Id:  id,
-		Err: err.Error(),
+	return messageResponse{Id: id, Err: err.Error()}
+}
+
+func newMessageListPods(id int, pods any) messageResponse {
+	return messageResponse{
+		Id:   id,
+		Body: map[string]any{"pods": pods},
 	}
 }
 
-func newMessageListPods(id int, pods []string) messageResponseListPods {
-	return messageResponseListPods{
-		messageResponseCommon: messageResponseCommon{Id: id},
-		Pods:                  pods,
+func newMessageWithId(id int, podId string) messageResponse {
+	return messageResponse{
+		Id:   id,
+		Body: map[string]string{"podId": podId},
 	}
 }
 
-func newMessageWithId(id int, podId string) messageResponseWithId {
-	return messageResponseWithId{
-		messageResponseCommon: messageResponseCommon{Id: id},
-		PodId:                 podId,
-	}
-}
-
-func newMessageEmpty(id int) messageResponseCommon {
-	return messageResponseCommon{Id: id}
+func newMessageEmpty(id int) messageResponse {
+	return messageResponse{Id: id}
 }
 
 type messageEvent struct {
@@ -207,13 +197,21 @@ func (c *Client) parseMessage(data []byte) error {
 		return c.methodListPods(ctx, msg)
 	case "createPod":
 		return c.methodCreatePod(ctx, msg)
+	case "stopPod":
+		return c.methodStopPod(ctx, msg)
+	case "removePod":
+		return c.methodRemovePod(ctx, msg)
+	case "restartPod":
+		return c.methodRestartPod(ctx, msg)
 	case "attachToPod":
 		return c.methodAttachToPod(ctx, msg)
 	case "sendToPod":
 		return c.methodSendToPod(ctx, msg)
+	case "uploadToPod":
+		return c.methodUploadToPod(ctx, msg)
 	}
 
-	return nil
+	return fmt.Errorf("invalid message method: %v", msg.Method)
 }
 
 func (c *Client) methodListPods(ctx context.Context, msg messageRequest) error {
@@ -247,6 +245,149 @@ func (c *Client) methodCreatePod(ctx context.Context, msg messageRequest) error 
 	}
 
 	return c.sendMessage(newMessageWithId(msg.Id, id))
+}
+
+func (c *Client) methodStopPod(ctx context.Context, msg messageRequest) error {
+	var args []string
+	if err := json.Unmarshal(msg.Args, &args); err != nil {
+		return err
+	}
+
+	if len(args) != 1 {
+		return fmt.Errorf(
+			"invalid number of arguments to createPod method, expected 1, got %v",
+			len(msg.Args),
+		)
+	}
+
+	err := c.central.ContainerStop(ctx, args[0])
+	if err != nil {
+		return c.sendMessage(newMessageErr(msg.Id, err))
+	}
+
+	return c.sendMessage(newMessageEmpty(msg.Id))
+}
+
+func (c *Client) methodRemovePod(ctx context.Context, msg messageRequest) error {
+	var args []string
+	if err := json.Unmarshal(msg.Args, &args); err != nil {
+		return err
+	}
+
+	if len(args) != 1 {
+		return fmt.Errorf(
+			"invalid number of arguments to createPod method, expected 1, got %v",
+			len(msg.Args),
+		)
+	}
+
+	err := c.central.ContainerRemove(ctx, args[0])
+	if err != nil {
+		return c.sendMessage(newMessageErr(msg.Id, err))
+	}
+
+	return c.sendMessage(newMessageEmpty(msg.Id))
+}
+
+type uploadToPodParams struct {
+	PodId   string `json:"podId"`
+	DstPath string `json:"dstPath"`
+	Data    []byte `json:"data"`
+}
+
+func (r *uploadToPodParams) UnmarshalJSON(p []byte) error {
+	var tmp []interface{}
+	if err := json.Unmarshal(p, &tmp); err != nil {
+		return err
+	}
+
+	if len(tmp) != 3 {
+		return fmt.Errorf("expected 3 fields, got %d", len(tmp))
+	}
+
+	var ok bool
+	r.PodId, ok = tmp[0].(string)
+	if !ok {
+		return fmt.Errorf("expected string for podId")
+	}
+
+	r.DstPath, ok = tmp[1].(string)
+	if !ok {
+		return fmt.Errorf("expected string for dstPath")
+	}
+
+	data, ok := tmp[2].(string)
+	if !ok {
+		return fmt.Errorf("expected base64 string for data")
+	}
+
+	var err error
+	r.Data, err = base64.StdEncoding.DecodeString(data)
+	if err != nil {
+		return fmt.Errorf("expected base64 string for data: %w", err)
+	}
+
+	return nil
+}
+
+func (c *Client) methodUploadToPod(ctx context.Context, msg messageRequest) error {
+	var args uploadToPodParams
+	if err := json.Unmarshal(msg.Args, &args); err != nil {
+		return err
+	}
+
+	dir, file := path.Split(args.DstPath)
+
+	var buf bytes.Buffer
+	tw := tar.NewWriter(&buf)
+
+	hdr := &tar.Header{
+		Name: file,
+		Mode: 0400,
+		Size: int64(len(args.Data)),
+		Uid:  999,
+		Gid:  999,
+	}
+
+	if err := tw.WriteHeader(hdr); err != nil {
+		return err
+	}
+
+	if _, err := tw.Write(args.Data); err != nil {
+		return err
+	}
+
+	if err := tw.Close(); err != nil {
+		return err
+	}
+
+	err := c.central.ContainerCopyTo(ctx, args.PodId, dir, &buf)
+	if err != nil {
+		return c.sendMessage(newMessageErr(msg.Id, err))
+	}
+
+	return c.sendMessage(newMessageEmpty(msg.Id))
+}
+
+func (c *Client) methodRestartPod(ctx context.Context, msg messageRequest) error {
+	var args []string
+	if err := json.Unmarshal(msg.Args, &args); err != nil {
+		return err
+	}
+
+	if len(args) != 1 {
+		return fmt.Errorf(
+			"invalid number of arguments to createPod method, expected 1, got %v",
+			len(msg.Args),
+		)
+	}
+
+	err := c.central.ContainerRestart(ctx, args[0])
+	if err != nil {
+		return c.sendMessage(newMessageErr(msg.Id, err))
+	}
+
+	return c.sendMessage(newMessageEmpty(msg.Id))
 }
 
 func (c *Client) methodAttachToPod(ctx context.Context, msg messageRequest) error {
