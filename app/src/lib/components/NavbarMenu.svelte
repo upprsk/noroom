@@ -5,6 +5,7 @@
 <ul class="menu {$$props.class}" {...$$props.restArguments}>
   {#if $currentUser}
     <li><a href="/users">Alunos</a></li>
+    <li><a href="/pods">Pods</a></li>
     <li><a href="/account">Sua Conta</a></li>
 
     {#if $currentUser.role === 'editor'}

@@ -128,6 +128,28 @@ export const zClassWithPresenceSchema = zClassSchema.extend({
     .optional(),
 });
 
+export const zPodServerSchema = zModelBase.extend({
+  name: z.string(),
+  address: z.string(),
+});
+
+export const zPodSchema = zModelBase.extend({
+  podId: z.string(),
+  name: z.string(),
+  image: z.string(),
+  server: z.string(),
+  running: z.boolean(),
+  status: z.string(),
+});
+
+export const zPodServerWithPodsSchema = zPodServerSchema.extend({
+  expand: z
+    .object({
+      pods_via_server: zPodSchema.array(),
+    })
+    .optional(),
+});
+
 export const zFileUploadSchema = z.object({
   attachments: z
     .instanceof(File, { message: 'Select a file' })
