@@ -180,7 +180,7 @@ func makeApiNoroomPodAttach(app *pocketbase.PocketBase, pm *pods.PodServerManage
 			return err
 		}
 
-		canAccess, err := app.Dao().CanAccessRecord(pod, info, pod.Collection().ViewRule)
+		canAccess, err := app.Dao().CanAccessRecord(pod, info, pod.Collection().UpdateRule)
 		if !canAccess {
 			return apis.NewForbiddenError("", err)
 		}
