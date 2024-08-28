@@ -84,6 +84,36 @@
             "student"
           ]
         }
+      },
+      {
+        "system": false,
+        "id": "u99bbhns",
+        "name": "maxPods",
+        "type": "number",
+        "required": false,
+        "presentable": false,
+        "unique": false,
+        "options": {
+          "min": null,
+          "max": null,
+          "noDecimal": false
+        }
+      },
+      {
+        "system": false,
+        "id": "wmmtseyd",
+        "name": "pods",
+        "type": "relation",
+        "required": false,
+        "presentable": false,
+        "unique": false,
+        "options": {
+          "collectionId": "3uqa6f9wyh118mk",
+          "cascadeDelete": false,
+          "minSelect": null,
+          "maxSelect": null,
+          "displayFields": null
+        }
       }
     ],
     "indexes": [
@@ -498,11 +528,11 @@
       }
     ],
     "indexes": [],
-    "listRule": "@request.auth.id != ''",
-    "viewRule": "@request.auth.id != ''",
-    "createRule": null,
-    "updateRule": "@request.auth.id != '' && @request.auth.role = 'editor'",
-    "deleteRule": null,
+    "listRule": "@request.auth.id != '' && (\n  @request.auth.pods:each = id ||\n  @request.auth.role = 'editor'\n)",
+    "viewRule": "@request.auth.id != '' && (\n  @request.auth.pods:each = id ||\n  @request.auth.role = 'editor'\n)",
+    "createRule": "@request.auth.id != '' && (\n  @request.auth.maxPods < @request.auth.pods:length ||\n  @request.auth.role = 'editor'\n)",
+    "updateRule": "@request.auth.id != '' && (\n  @request.auth.pods:each = id ||\n  @request.auth.role = 'editor'\n)",
+    "deleteRule": "@request.auth.id != '' && (\n  @request.auth.pods:each = id ||\n  @request.auth.role = 'editor'\n)",
     "options": {}
   }
 ]
