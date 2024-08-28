@@ -12,6 +12,7 @@ import (
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
+	"github.com/pocketbase/pocketbase/daos"
 	"github.com/pocketbase/pocketbase/models"
 )
 
@@ -36,6 +37,11 @@ func main() {
 		e.Router.POST("/api/noroom/pod/:id/kill", makeApiNoroomPodKill(app, podman), apis.ActivityLogger(app), apis.RequireRecordAuth("users"))
 		e.Router.POST("/api/noroom/pod/:id/inspect", makeApiNoroomPodInspect(app, podman), apis.ActivityLogger(app), apis.RequireRecordAuth("users"))
 		e.Router.GET("/api/noroom/pod/:id/attach", makeApiNoroomPodAttach(app, podman), apis.ActivityLogger(app), apis.RequireRecordAuth("users"))
+
+		if err := checkAndMigrateUsersToHavePods(app); err != nil {
+			app.Logger().Error("failed to migrate users", "reason", err)
+			return err
+		}
 
 		if err := initializePodServerManager(app, podman); err != nil {
 			app.Logger().Error("failed to inialize the pod server manager", "reason", err)
@@ -98,6 +104,28 @@ func initializePodServerManager(app *pocketbase.PocketBase, pm *pods.PodServerMa
 	}
 
 	return nil
+}
+
+// ============================================================================
+
+func checkAndMigrateUsersToHavePods(app *pocketbase.PocketBase) error {
+	return app.Dao().RunInTransaction(func(txDao *daos.Dao) error {
+		users, err := txDao.FindRecordsByExpr("users")
+		if err != nil {
+			return err
+		}
+
+		for _, user := range users {
+			if maxPods := user.GetInt("maxPods"); maxPods == 0 {
+				user.Set("maxPods", 1)
+				if err := txDao.SaveRecord(user); err != nil {
+					return err
+				}
+			}
+		}
+
+		return nil
+	})
 }
 
 // ============================================================================
