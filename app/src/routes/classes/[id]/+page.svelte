@@ -2,7 +2,7 @@
   import BasicCard from '$lib/components/BasicCard.svelte';
   import { getFileUrl } from '$lib/pocketbase.js';
   import { currentUser } from '$lib/stores/user';
-  import { Marked, Renderer, type Tokens } from 'marked';
+  import { Marked, type Renderer, type Tokens } from 'marked';
   import { markedHighlight } from 'marked-highlight';
   import Prism from 'prismjs';
   import 'prismjs/components/prism-c';
