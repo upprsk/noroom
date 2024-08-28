@@ -75,22 +75,18 @@ func (sc *streamClient) handle() error {
 	defer sc.close()
 
 	for {
-		if err := sc.handleOne(); err != nil {
+		detach, err := sc.rpc.HandleOne(context.Background())
+		if err != nil {
 			return err
+		}
+
+		if detach {
+			sc.stream = nil
+			return nil
 		}
 	}
 }
 
-func (sc *streamClient) handleOne() error {
-	detachStream, err := sc.rpc.HandleOne(context.Background())
-	if err != nil {
-		return err
-	}
-
-	if detachStream {
-		// keep the stream open
-		sc.stream = nil
-	}
-
-	return nil
+func (sc *streamClient) handleOne() (bool, error) {
+	return sc.rpc.HandleOne(context.Background())
 }

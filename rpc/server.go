@@ -34,6 +34,11 @@ type ContainerInspectResult struct {
 	State      ContainerState
 }
 
+type Bridge interface {
+	Connect(stream io.ReadWriteCloser)
+	Close()
+}
+
 type RpcHandler interface {
 	Create(ctx context.Context, name, image string, cmd []string, env []string) (string, error)
 	Start(ctx context.Context, id string) error
@@ -41,16 +46,17 @@ type RpcHandler interface {
 	Kill(ctx context.Context, id, signal string) error
 	Delete(ctx context.Context, id string) error
 	Inspect(ctx context.Context, id string) (*ContainerInspectResult, error)
+	Attach(ctx context.Context, id string) (Bridge, error)
 }
 
 type RpcServer struct {
-	stream  io.ReadWriter
+	stream  io.ReadWriteCloser
 	handler RpcHandler
 
 	timeout time.Duration
 }
 
-func NewRpcServer(stream io.ReadWriter, timeout time.Duration, handler RpcHandler) *RpcServer {
+func NewRpcServer(stream io.ReadWriteCloser, timeout time.Duration, handler RpcHandler) *RpcServer {
 	return &RpcServer{
 		stream:  stream,
 		handler: handler,
@@ -77,6 +83,8 @@ func (rpc *RpcServer) HandleOne(ctx context.Context) (bool, error) {
 		return false, rpc.methodDelete(ctx, req.Params)
 	case "inspect":
 		return false, rpc.methodInspect(ctx, req.Params)
+	case "attach":
+		return true, rpc.methodAttach(ctx, req.Params)
 	default:
 		return false, fmt.Errorf("invalid method: %s", req.Method)
 	}
@@ -115,7 +123,12 @@ func (rpc *RpcServer) methodStart(ctx context.Context, rawParams json.RawMessage
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, rpc.timeout)
+	timeout := rpc.timeout
+	if params.Timeout.Nanoseconds() != 0 {
+		timeout = params.Timeout
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	if err := rpc.handler.Start(ctx, params.Id); err != nil {
@@ -131,7 +144,12 @@ func (rpc *RpcServer) methodStop(ctx context.Context, rawParams json.RawMessage)
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, rpc.timeout)
+	timeout := rpc.timeout
+	if params.Timeout.Nanoseconds() != 0 {
+		timeout = params.Timeout
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	if err := rpc.handler.Stop(ctx, params.Id); err != nil {
@@ -147,7 +165,12 @@ func (rpc *RpcServer) methodKill(ctx context.Context, rawParams json.RawMessage)
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, rpc.timeout)
+	timeout := rpc.timeout
+	if params.Timeout.Nanoseconds() != 0 {
+		timeout = params.Timeout
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	if err := rpc.handler.Kill(ctx, params.Id, ""); err != nil {
@@ -188,6 +211,31 @@ func (rpc *RpcServer) methodInspect(ctx context.Context, rawParams json.RawMessa
 	}
 
 	return rpc.sendResponse(RpcInspectResponse{Data: data})
+}
+
+func (rpc *RpcServer) methodAttach(ctx context.Context, rawParams json.RawMessage) error {
+	var params RpcIdRequestParams
+	if err := json.Unmarshal(rawParams, &params); err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, rpc.timeout)
+	defer cancel()
+
+	bridge, err := rpc.handler.Attach(ctx, params.Id)
+	if err != nil {
+		return rpc.sendResponse(NewRpcError(err))
+	}
+
+	if err := rpc.sendResponse(RpcEmptyResponse{}); err != nil {
+		bridge.Close()
+
+		return err
+	}
+
+	bridge.Connect(rpc.stream)
+
+	return nil
 }
 
 func (rpc *RpcServer) sendResponse(res any) error {

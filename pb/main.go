@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"log"
 
 	"noroom/pb/pods"
@@ -23,6 +25,7 @@ func main() {
 	// serves static files from the provided public dir (if exists)
 	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
 		// e.Router.GET("/*", apis.StaticDirectoryHandler(os.DirFS("./pb_public"), true))
+		e.Router.Pre(middlewareLoadAuthContextFromQuery(app))
 
 		e.Router.POST("/api/noroom/tracking", makeApiNoroomTracking(app, validate), apis.ActivityLogger(app))
 
@@ -32,8 +35,11 @@ func main() {
 		e.Router.POST("/api/noroom/pod/:id/stop", makeApiNoroomPodStop(app, podman), apis.ActivityLogger(app), apis.RequireRecordAuth("users"))
 		e.Router.POST("/api/noroom/pod/:id/kill", makeApiNoroomPodKill(app, podman), apis.ActivityLogger(app), apis.RequireRecordAuth("users"))
 		e.Router.POST("/api/noroom/pod/:id/inspect", makeApiNoroomPodInspect(app, podman), apis.ActivityLogger(app), apis.RequireRecordAuth("users"))
+		e.Router.GET("/api/noroom/pod/:id/attach", makeApiNoroomPodAttach(app, podman), apis.ActivityLogger(app), apis.RequireRecordAuth("users"))
 
-		initializePodServerManager(app, podman)
+		if err := initializePodServerManager(app, podman); err != nil {
+			app.Logger().Error("failed to inialize the pod server manager", "reason", err)
+		}
 
 		return nil
 	})
@@ -64,7 +70,12 @@ func initializePodServerManager(app *pocketbase.PocketBase, pm *pods.PodServerMa
 
 	for _, server := range podServers {
 		if err := pm.Add(server.Id, server.GetString("address")); err != nil {
-			return err
+			if !errors.Is(err, context.DeadlineExceeded) {
+				return err
+			}
+
+			app.Logger().Warn("failed to connect to server", "id", server.Id, "name", server.GetString("name"))
+			// failed to connect, but keep going (as the server as added to the manager in this case)
 		}
 
 		pods, err := app.Dao().FindRecordsByFilter(
@@ -80,7 +91,7 @@ func initializePodServerManager(app *pocketbase.PocketBase, pm *pods.PodServerMa
 		}
 
 		for _, pod := range pods {
-			if err := pm.AddExistingPodToServer(server.Id, pod.GetString("podId")); err != nil {
+			if err := pm.AddExistingPodToServerWithoutConnect(server.Id, pod.GetString("podId")); err != nil {
 				return err
 			}
 		}
@@ -193,7 +204,7 @@ func makePodsAfterDeleteRequest(app *pocketbase.PocketBase, pm *pods.PodServerMa
 		serverId := e.Record.GetString("server")
 		podId := e.Record.GetString("podId")
 
-		err := pm.DeletePodFromServer(serverId, podId)
+		err := pm.DeletePodFromServer(serverId, podId, defaultDeleteTimeout)
 		if err != nil {
 			app.Logger().Error("failed to delete pod", "podServer", serverId, "pod", e.Record.Id, "reason", err)
 		}

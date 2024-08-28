@@ -3,6 +3,7 @@ package rpc
 import (
 	"encoding/json"
 	"errors"
+	"time"
 )
 
 type RpcRequest struct {
@@ -14,6 +15,11 @@ type RpcIdRequestParams struct {
 	Id string
 }
 
+type RpcIdTimeoutRequestParams struct {
+	Id      string
+	Timeout time.Duration
+}
+
 type RpcCreateRequestParams struct {
 	Name  string
 	Image string
@@ -21,11 +27,12 @@ type RpcCreateRequestParams struct {
 	Env   map[string]string
 }
 
-type RpcStartRequestParams = RpcIdRequestParams
-type RpcStopRequestParams = RpcIdRequestParams
-type RpcKillRequestParams = RpcIdRequestParams
+type RpcStartRequestParams = RpcIdTimeoutRequestParams
+type RpcStopRequestParams = RpcIdTimeoutRequestParams
+type RpcKillRequestParams = RpcIdTimeoutRequestParams
 type RpcDeleteRequestParams = RpcIdRequestParams
 type RpcInspectRequestParams = RpcIdRequestParams
+type RpcAttachRequestParams = RpcIdRequestParams
 
 func NewRpcCreateRequest(params RpcCreateRequestParams) (RpcRequest, error) {
 	return NewRpcRequest("create", params)
@@ -49,6 +56,10 @@ func NewRpcDeleteRequest(params RpcDeleteRequestParams) (RpcRequest, error) {
 
 func NewRpcInspectRequest(params RpcInspectRequestParams) (RpcRequest, error) {
 	return NewRpcRequest("inspect", params)
+}
+
+func NewRpcAttachRequest(params RpcAttachRequestParams) (RpcRequest, error) {
+	return NewRpcRequest("attach", params)
 }
 
 func NewRpcRequest(method string, params any) (RpcRequest, error) {

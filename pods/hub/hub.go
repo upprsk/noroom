@@ -123,3 +123,17 @@ func (h *Hub) Inspect(ctx context.Context, id string) (*rpc.ContainerInspectResu
 		},
 	}, nil
 }
+
+func (h *Hub) Attach(ctx context.Context, id string) (rpc.Bridge, error) {
+	stream, err := h.docker.ContainerAttach(ctx, id, container.AttachOptions{
+		Stream: true,
+		Stdin:  true,
+		Stdout: true,
+		Stderr: true,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &Bridge{containerStream: stream}, nil
+}

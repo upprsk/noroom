@@ -150,6 +150,10 @@ export const zPodServerWithPodsSchema = zPodServerSchema.extend({
     .optional(),
 });
 
+export const zPodWithServerSchema = zPodSchema.extend({
+  expand: z.object({ server: zPodServerSchema }).optional(),
+});
+
 export const zFileUploadSchema = z.object({
   attachments: z
     .instanceof(File, { message: 'Select a file' })

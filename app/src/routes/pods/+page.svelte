@@ -147,7 +147,7 @@
               <li>
                 <div class="flex justify-between">
                   <span>
-                    <b>{pod.name} - {pod.image}:</b>
+                    <a href="pods/{pod.id}"><b>{pod.name} - {pod.image}:</b></a>
                     {pod.status}
                     {#if pod.running}
                       <span class="badge badge-success">running</span>

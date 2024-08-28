@@ -29,6 +29,7 @@ func NewPodServerManager() *PodServerManager {
 	}
 }
 
+// in case the error is a connect error, the server is still added to the map
 func (m *PodServerManager) Add(id, addr string) error {
 	resolved, err := net.ResolveUDPAddr("udp4", addr)
 	if err != nil {
@@ -42,15 +43,12 @@ func (m *PodServerManager) Add(id, addr string) error {
 		return fmt.Errorf("server with id %v already added", id)
 	}
 
-	srv, err := newPodServer(resolved)
-	if err != nil {
-		return err
-	}
-
+	srv := newPodServer(resolved)
 	go srv.start()
+
 	m.podServers[id] = srv
 
-	return nil
+	return srv.reconnect()
 }
 
 func (m *PodServerManager) Del(id string) error {
@@ -107,7 +105,7 @@ func (m *PodServerManager) AddExistingPodToServer(serverId, podId string) error 
 	return nil
 }
 
-func (m *PodServerManager) DeletePodFromServer(serverId, podId string) error {
+func (m *PodServerManager) AddExistingPodToServerWithoutConnect(serverId, podId string) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
@@ -116,14 +114,30 @@ func (m *PodServerManager) DeletePodFromServer(serverId, podId string) error {
 		return fmt.Errorf("no such server with id %v", serverId)
 	}
 
-	if err := podServer.deletePod(podId); err != nil {
+	if err := podServer.addExistingPodWithoutConnect(podId); err != nil {
+		return fmt.Errorf("error adding existing pod: %w", err)
+	}
+
+	return nil
+}
+
+func (m *PodServerManager) DeletePodFromServer(serverId, podId string, timeout time.Duration) error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	podServer, ok := m.podServers[serverId]
+	if !ok {
+		return fmt.Errorf("no such server with id %v", serverId)
+	}
+
+	if err := podServer.deletePod(podId, timeout); err != nil {
 		return fmt.Errorf("error deleting pod: %w", err)
 	}
 
 	return nil
 }
 
-func (m *PodServerManager) StartPodById(podId string) error {
+func (m *PodServerManager) StartPodById(podId string, timeout time.Duration) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
@@ -133,7 +147,7 @@ func (m *PodServerManager) StartPodById(podId string) error {
 		return fmt.Errorf("no such pod with id %v", podId)
 	}
 
-	if err := pod.start(); err != nil {
+	if err := pod.start(timeout); err != nil {
 		srv.reconnectIfNetErr(err)
 		return err
 	}
@@ -141,7 +155,7 @@ func (m *PodServerManager) StartPodById(podId string) error {
 	return nil
 }
 
-func (m *PodServerManager) StopPodById(podId string) error {
+func (m *PodServerManager) StopPodById(podId string, timeout time.Duration) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
@@ -151,7 +165,7 @@ func (m *PodServerManager) StopPodById(podId string) error {
 	}
 
 	log.Println("StopPodById:", podId)
-	if err := pod.stop(); err != nil {
+	if err := pod.stop(timeout); err != nil {
 		srv.reconnectIfNetErr(err)
 		return err
 	}
@@ -159,7 +173,7 @@ func (m *PodServerManager) StopPodById(podId string) error {
 	return nil
 }
 
-func (m *PodServerManager) KillPodById(podId string) error {
+func (m *PodServerManager) KillPodById(podId string, timeout time.Duration) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
@@ -169,7 +183,7 @@ func (m *PodServerManager) KillPodById(podId string) error {
 	}
 
 	log.Println("KillPodById:", podId)
-	if err := pod.kill(); err != nil {
+	if err := pod.kill(timeout); err != nil {
 		srv.reconnectIfNetErr(err)
 		return err
 	}
@@ -194,6 +208,32 @@ func (m *PodServerManager) InspectPodById(podId string) (*rpc.ContainerInspectRe
 	}
 
 	return data, nil
+}
+
+func (m *PodServerManager) AttachPodById(podId string) (quic.Stream, error) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	srv, pod := m.findPodById(podId)
+	if srv == nil {
+		return nil, fmt.Errorf("no such pod with id %v", podId)
+	}
+
+	log.Println("InspectPodById:", podId)
+	err := pod.attach()
+	if err != nil {
+		srv.reconnectIfNetErr(err)
+		return nil, err
+	}
+
+	stream := pod.stream
+
+	if err := srv.openRpcForPod(podId); err != nil {
+		srv.reconnectIfNetErr(err)
+		return nil, err
+	}
+
+	return stream, nil
 }
 
 func (m *PodServerManager) findPodById(podId string) (*podServer, *podInstance) {
@@ -223,18 +263,14 @@ type podServerCmd struct {
 	ret  chan error
 }
 
-func newPodServer(addr net.Addr) (*podServer, error) {
+func newPodServer(addr net.Addr) *podServer {
 	s := &podServer{
 		addr: addr,
 		pods: map[string]*podInstance{},
 		cmds: make(chan podServerCmd),
 	}
 
-	if err := s.execConnect(); err != nil {
-		return nil, err
-	}
-
-	return s, nil
+	return s
 }
 
 func (p *podServer) start() {
@@ -252,16 +288,22 @@ func (p *podServer) close() {
 	close(p.cmds)
 }
 
-// func (p *podServer) reconnect() error {
-// 	return p.execCmd(func() error {
-// 		return p.execReconnect()
-// 	})
-// }
+func (p *podServer) reconnect() error {
+	return p.execCmd(func() error {
+		return p.execReconnect()
+	})
+}
 
 func (p *podServer) reconnectIfNetErr(err error) {
 	p.execCmd(func() error {
 		p.execReconnectIfNet(err)
 		return nil
+	})
+}
+
+func (p *podServer) openRpcForPod(podId string) error {
+	return p.execCmd(func() error {
+		return p.execOpenRpcForPod(podId)
 	})
 }
 
@@ -286,15 +328,21 @@ func (p *podServer) addExistingPod(podId string) error {
 	})
 }
 
+func (p *podServer) addExistingPodWithoutConnect(podId string) error {
+	return p.execCmd(func() error {
+		return p.execAddExistingPodWithoutConnect(podId)
+	})
+}
+
 func (p *podServer) updateConnectedPodUnlocked(podId string) error {
 	return p.execCmd(func() error {
 		return p.execUpdateConnectedPod(podId)
 	})
 }
 
-func (p *podServer) deletePod(podId string) error {
+func (p *podServer) deletePod(podId string, timeout time.Duration) error {
 	return p.execCmd(func() error {
-		return p.execDeletePod(podId)
+		return p.execDeletePod(podId, timeout)
 	})
 }
 
@@ -342,6 +390,10 @@ func (p *podServer) getConnection() (quic.Connection, error) {
 	return p.conn, nil
 }
 
+func (p *podServer) hasConnection() bool {
+	return p.conn != nil
+}
+
 func connectQuic(ctx context.Context, tr *quic.Transport, addr net.Addr) (quic.Connection, error) {
 	return tr.Dial(
 		ctx,
@@ -378,6 +430,19 @@ func (p *podServer) execCmd(exec func() error) error {
 	return <-ret
 }
 
+func (p *podServer) execOpenRpcForPod(podId string) error {
+	stream, err := p.openStream()
+	if err != nil {
+		return err
+	}
+
+	rpc := rpc.NewRpcClient(stream)
+	p.pods[podId] = newPodInstance(podId, stream, rpc)
+	log.Println("opened new stream for pod with id:", podId)
+
+	return nil
+}
+
 func (p *podServer) execCreatePod(name, image string) (string, error) {
 	stream, err := p.openStream()
 	if err != nil {
@@ -402,6 +467,28 @@ func (p *podServer) execCreatePod(name, image string) (string, error) {
 	return podId, nil
 }
 
+func (p *podServer) execAddExistingPodWithoutConnect(podId string) error {
+	if _, exists := p.pods[podId]; exists {
+		return fmt.Errorf("pod with id %v already added", podId)
+	}
+
+	var stream quic.Stream
+	if p.hasConnection() {
+		s, err := p.openStream()
+		if err != nil {
+			log.Println("failed to open stream for pod with id", podId)
+		} else {
+			stream = s
+		}
+	}
+
+	rpc := rpc.NewRpcClient(stream)
+	p.pods[podId] = newPodInstance(podId, stream, rpc)
+	log.Println("added existing pod with id without connecting:", podId)
+
+	return nil
+}
+
 func (p *podServer) execAddExistingPod(podId string) error {
 	if _, exists := p.pods[podId]; exists {
 		return fmt.Errorf("pod with id %v already added", podId)
@@ -419,14 +506,14 @@ func (p *podServer) execAddExistingPod(podId string) error {
 	return nil
 }
 
-func (p *podServer) execDeletePod(podId string) error {
+func (p *podServer) execDeletePod(podId string, timeout time.Duration) error {
 	pod, exists := p.pods[podId]
 	if !exists {
 		return fmt.Errorf("pod with id %v does not exist", podId)
 	}
 
 	delete(p.pods, podId)
-	if err := pod.kill(); err != nil {
+	if err := pod.kill(timeout); err != nil {
 		log.Printf("failed to kill pod %v: %v", podId, err)
 	}
 
@@ -475,6 +562,11 @@ func (p *podServer) execReconnectIfNet(err error) {
 		}
 	} else if errors.Is(err, io.EOF) {
 		log.Println("got EOF error:", nerr)
+		if err := p.execReconnect(); err != nil {
+			log.Println("failure in execReconnectIfNet:", err)
+		}
+	} else if errors.Is(err, rpc.ErrNilStream) {
+		log.Println("got nil stream error:", nerr)
 		if err := p.execReconnect(); err != nil {
 			log.Println("failure in execReconnectIfNet:", err)
 		}
@@ -563,19 +655,21 @@ func newPodInstance(podId string, stream quic.Stream, rpc *rpc.RpcClient) *podIn
 }
 
 func (p *podInstance) close() {
-	p.stream.Close()
+	if p.stream != nil {
+		p.stream.Close()
+	}
 }
 
-func (p *podInstance) kill() error {
-	return p.rpc.Kill(p.podId)
+func (p *podInstance) kill(timeout time.Duration) error {
+	return p.rpc.Kill(p.podId, timeout)
 }
 
-func (p *podInstance) start() error {
-	return p.rpc.Start(p.podId)
+func (p *podInstance) start(timeout time.Duration) error {
+	return p.rpc.Start(p.podId, timeout)
 }
 
-func (p *podInstance) stop() error {
-	return p.rpc.Stop(p.podId)
+func (p *podInstance) stop(timeout time.Duration) error {
+	return p.rpc.Stop(p.podId, timeout)
 }
 
 func (p *podInstance) delete() error {
@@ -584,4 +678,8 @@ func (p *podInstance) delete() error {
 
 func (p *podInstance) inspect() (*rpc.ContainerInspectResult, error) {
 	return p.rpc.Inspect(p.podId)
+}
+
+func (p *podInstance) attach() error {
+	return p.rpc.Attach(p.podId)
 }
