@@ -33,6 +33,6 @@ export const actions: Actions = {
       return processError(form, e, zErrorSchema);
     }
 
-    redirect(303, '/');
+    throw redirect(303, '/');
   },
 };

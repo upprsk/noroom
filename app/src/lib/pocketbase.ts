@@ -95,6 +95,24 @@ export const simpleSend = <T extends z.ZodTypeAny, Params extends unknown[]>(
   path: string | ((...args: Params) => string),
   options: SendOptions,
 ) => {
+  return simpleRequest<T, Params>(
+    schema,
+    (...args) => {
+      const p = typeof path === 'string' ? path : path(...args);
+      return pb.send(p, options);
+    },
+    {
+      hookOnError: (e) =>
+        console.error('error in ', options.method ?? 'get', ' request to ', path, ':', e),
+    },
+  );
+};
+
+export const simpleRequest = <T extends z.ZodTypeAny, Params extends unknown[]>(
+  schema: T,
+  req: (...args: Params) => Promise<unknown>,
+  options?: { hookOnError?: (e: unknown) => void; hookOnSuccess?: (data: T) => void },
+) => {
   const loading = writable(false);
   const error = writable<ClientResponseError | undefined>();
   const data = writable<z.infer<T>>();
@@ -117,11 +135,13 @@ export const simpleSend = <T extends z.ZodTypeAny, Params extends unknown[]>(
         loading.set(true);
         error.set(undefined);
 
-        const p = typeof path === 'string' ? path : path(...args);
-        const res = schema.parse(await pb.send(p, options)) as z.infer<T>;
+        const res = schema.parse(await req(...args)) as z.infer<T>;
         data.set(res);
+
+        if (options?.hookOnSuccess) options.hookOnSuccess(res);
       } catch (e) {
-        console.error('error in send to ', path, ':', e);
+        console.error('error in request:', e);
+        if (options?.hookOnError) options.hookOnError(e);
 
         if (e instanceof ClientResponseError) {
           error.set(e);

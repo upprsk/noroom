@@ -143,6 +143,7 @@ func makeUsersBeforeCreateRequest() func(e *core.RecordCreateEvent) error {
 		}
 
 		e.Record.Set("role", "student")
+		e.Record.Set("maxPods", 1)
 
 		return nil
 	}

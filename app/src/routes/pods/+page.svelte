@@ -93,74 +93,91 @@
   <p>
     Os servidores Pod permitem criar maquinas virtuais na nuvem. Cada usuario tem direito por padrao
     a uma maquina virtual. Se precisar de mais maquinas, entre em contato com um administrador do
-    sistema para ter o seu limite ajustado.
+    sistema para ter o seu limite ajustado. {#if data.user.role === 'editor'}Voce nao possui limite.{:else}Seu
+      limite atual e de <b>{data.user.maxPods}</b> maquinas.{/if}
   </p>
 
   <ErrorAlert errors={allErrors} />
 
-  <div class="prose">
-    <ul>
-      {#each data.podServers as srv (srv.id)}
-        {@const pods = data.pods.filter((p) => p.server === srv.id)}
-        <li>
-          <span><b>{srv.name}:</b> {srv.address}</span>
-          <ul>
-            {#each pods as pod (pod.id)}
-              <li>
-                <div class="flex justify-between">
-                  <span>
-                    <a href="pods/{pod.id}"><b>{pod.name} - {pod.image}:</b></a>
-                    {pod.status}
-                    {#if pod.running}
-                      <span class="badge badge-success">running</span>
-                    {:else}
-                      <span class="badge badge-ghost">stopped</span>
-                    {/if}
-                  </span>
+  {#if data.user.pods.length < data.user.maxPods || data.user.role === 'editor'}
+    <div class="flex w-full justify-end">
+      <a href="pods/new" class="btn btn-primary btn-sm">novo</a>
+    </div>
+  {/if}
 
-                  <div>
-                    <button
-                      type="button"
-                      class="btn btn-info btn-sm"
-                      disabled={anyLoading}
-                      on:click={() => sendInspect(pod.id)}
-                    >
-                      inspect
-                    </button>
+  <div class="overflow-x-auto">
+    <table class="table">
+      <!-- head -->
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Imagem</th>
+          <th>Servidor</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {#each data.pods as pod (pod.id)}
+          {@const srv = data.podServers.find((s) => s.id === pod.server)}
+          <tr>
+            <td>
+              {pod.name}
+              <br />
+              {pod.podId.substring(0, 16)}
+            </td>
+            <td>
+              {pod.image}
+            </td>
+            <td>
+              {srv?.name}
+            </td>
+            <td>
+              <span class="badge" class:badge-ghost={!pod.running} class:badge-success={pod.running}
+                >{pod.status}</span
+              >
+            </td>
+            <th>
+              <button
+                class="btn btn-secondary btn-xs"
+                disabled={anyLoading}
+                on:click={() => sendInspect(pod.id)}>update</button
+              >
 
-                    <button
-                      type="button"
-                      class="btn btn-primary btn-sm"
-                      disabled={anyLoading}
-                      on:click={() => sendStart(pod.id)}
-                    >
-                      start
-                    </button>
+              {#if !pod.running}
+                <button
+                  class="btn btn-primary btn-xs"
+                  disabled={anyLoading}
+                  on:click={() => sendStart(pod.id)}>start</button
+                >
+              {:else}
+                <button
+                  class="btn btn-warning btn-xs"
+                  disabled={anyLoading}
+                  on:click={() => sendStop(pod.id)}>stop</button
+                >
+                <button
+                  class="btn btn-warning btn-xs"
+                  disabled={anyLoading}
+                  on:click={() => sendKill(pod.id)}>kill</button
+                >
+              {/if}
 
-                    <button
-                      type="button"
-                      class="btn btn-accent btn-sm"
-                      disabled={anyLoading}
-                      on:click={() => sendStop(pod.id)}
-                    >
-                      stop
-                    </button>
-
-                    <button
-                      type="button"
-                      class="btn btn-warning btn-sm"
-                      disabled={anyLoading}
-                      on:click={() => sendKill(pod.id)}
-                    >
-                      kill
-                    </button>
-                  </div>
-                </div>
-              </li>
-            {/each}
-          </ul>
-        </li>
-      {/each}
-    </ul>
+              <a href="pods/{pod.id}" class="btn btn-ghost btn-xs">details</a>
+            </th>
+          </tr>
+        {/each}
+      </tbody>
+      <!-- foot -->
+      <tfoot>
+        <tr>
+          <th>Nome</th>
+          <th>Imagem</th>
+          <th>Servidor</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </tfoot>
+    </table>
   </div>
 </BasicCard>

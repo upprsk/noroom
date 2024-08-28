@@ -33,6 +33,8 @@ export const zUserSchema = zModelBase.extend({
   curso: z.string(),
   avatar: z.string(),
   role: z.enum(['editor', 'student']),
+  maxPods: z.number().int(),
+  pods: z.string().array(),
 });
 
 export const zEndDeviceSchema = zModelBase.extend({

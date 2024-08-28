@@ -2,11 +2,12 @@
   import BasicCard from '$lib/components/BasicCard.svelte';
   import ErrorAlert from '$lib/components/ErrorAlert.svelte';
   import { zPodWithServerSchema } from '$lib/models.js';
-  import { pb, simpleSend, updateOneFromEvent } from '$lib/pocketbase.js';
+  import { pb, simpleRequest, simpleSend, updateOneFromEvent } from '$lib/pocketbase.js';
   import '@xterm/xterm/css/xterm.css';
   import { onMount } from 'svelte';
   import { z } from 'zod';
   import Terminal from './Terminal.svelte';
+  import { goto } from '$app/navigation';
 
   export let data;
 
@@ -16,6 +17,14 @@
     send: sendStart,
   } = simpleSend(pb, z.unknown(), `/api/noroom/pod/${data.pod.id}/start`, {
     method: 'post',
+  });
+
+  const {
+    loading: loadingDelete,
+    errors: errorsDelete,
+    send: sendDelete,
+  } = simpleRequest(z.unknown(), () => pb.collection('pods').delete(data.pod.id), {
+    hookOnSuccess: () => goto('/pods'),
   });
 
   const {
@@ -42,7 +51,8 @@
     method: 'post',
   });
 
-  $: anyLoading = $loadingStart || $loadingStop || $loadingKill || $loadingInspect;
+  $: anyLoading =
+    $loadingStart || $loadingStop || $loadingKill || $loadingInspect || $loadingDelete;
 
   // --------------------------------------------------------------------------
 
@@ -113,21 +123,52 @@
   <div class="h-5"></div>
 
   <div class="flex w-full items-center gap-2">
-    <button type="button" class="btn btn-info btn-sm" disabled={anyLoading} on:click={sendInspect}>
-      inspect
+    <button
+      type="button"
+      class="btn btn-secondary btn-sm"
+      disabled={anyLoading}
+      on:click={sendInspect}
+    >
+      update
     </button>
 
-    <button type="button" class="btn btn-primary btn-sm" disabled={anyLoading} on:click={sendStart}>
-      start
-    </button>
+    {#if !data.pod.running}
+      <button
+        type="button"
+        class="btn btn-primary btn-sm"
+        disabled={anyLoading}
+        on:click={sendStart}
+      >
+        start
+      </button>
 
-    <button type="button" class="btn btn-accent btn-sm" disabled={anyLoading} on:click={sendStop}>
-      stop
-    </button>
+      <button
+        type="button"
+        class="btn btn-warning btn-sm"
+        disabled={anyLoading}
+        on:click={sendDelete}
+      >
+        delete
+      </button>
+    {:else}
+      <button
+        type="button"
+        class="btn btn-warning btn-sm"
+        disabled={anyLoading}
+        on:click={sendStop}
+      >
+        stop
+      </button>
 
-    <button type="button" class="btn btn-warning btn-sm" disabled={anyLoading} on:click={sendKill}>
-      kill
-    </button>
+      <button
+        type="button"
+        class="btn btn-warning btn-sm"
+        disabled={anyLoading}
+        on:click={sendKill}
+      >
+        kill
+      </button>
+    {/if}
 
     <div class="form-control">
       <label class="label cursor-pointer gap-2">
@@ -146,6 +187,7 @@
   <ErrorAlert errors={$errorsStop} />
   <ErrorAlert errors={$errorsKill} />
   <ErrorAlert errors={$errorsInspect} />
+  <ErrorAlert errors={$errorsDelete} />
 
   <div class="h-5"></div>
 
