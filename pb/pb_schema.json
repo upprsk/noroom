@@ -30,7 +30,7 @@
         "options": {
           "min": null,
           "max": null,
-          "noDecimal": false
+          "noDecimal": true
         }
       },
       {
@@ -96,7 +96,7 @@
         "options": {
           "min": null,
           "max": null,
-          "noDecimal": false
+          "noDecimal": true
         }
       },
       {
