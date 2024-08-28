@@ -141,7 +141,7 @@ func (m *PodServerManager) StartPodById(podId string, timeout time.Duration) err
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
-	log.Println("StartPodById:", podId)
+	// log.Println("StartPodById:", podId)
 	srv, pod := m.findPodById(podId)
 	if srv == nil {
 		return fmt.Errorf("no such pod with id %v", podId)
@@ -164,7 +164,7 @@ func (m *PodServerManager) StopPodById(podId string, timeout time.Duration) erro
 		return fmt.Errorf("no such pod with id %v", podId)
 	}
 
-	log.Println("StopPodById:", podId)
+	// log.Println("StopPodById:", podId)
 	if err := pod.stop(timeout); err != nil {
 		srv.reconnectIfNetErr(err)
 		return err
@@ -182,7 +182,7 @@ func (m *PodServerManager) KillPodById(podId string, timeout time.Duration) erro
 		return fmt.Errorf("no such pod with id %v", podId)
 	}
 
-	log.Println("KillPodById:", podId)
+	// log.Println("KillPodById:", podId)
 	if err := pod.kill(timeout); err != nil {
 		srv.reconnectIfNetErr(err)
 		return err
@@ -200,7 +200,7 @@ func (m *PodServerManager) InspectPodById(podId string) (*rpc.ContainerInspectRe
 		return nil, fmt.Errorf("no such pod with id %v", podId)
 	}
 
-	log.Println("InspectPodById:", podId)
+	// log.Println("InspectPodById:", podId)
 	data, err := pod.inspect()
 	if err != nil {
 		srv.reconnectIfNetErr(err)
@@ -219,7 +219,7 @@ func (m *PodServerManager) AttachPodById(podId string) (quic.Stream, error) {
 		return nil, fmt.Errorf("no such pod with id %v", podId)
 	}
 
-	log.Println("InspectPodById:", podId)
+	// log.Println("InspectPodById:", podId)
 	err := pod.attach()
 	if err != nil {
 		srv.reconnectIfNetErr(err)
@@ -349,7 +349,7 @@ func (p *podServer) deletePod(podId string, timeout time.Duration) error {
 // ----------------------------------------------------------------------------
 
 func (p *podServer) openStream() (quic.Stream, error) {
-	log.Println("podServer.openStream()")
+	// log.Println("podServer.openStream()")
 	conn, err := p.getConnection()
 	if err != nil {
 		p.execCloseFailure()
@@ -438,7 +438,7 @@ func (p *podServer) execOpenRpcForPod(podId string) error {
 
 	rpc := rpc.NewRpcClient(stream)
 	p.pods[podId] = newPodInstance(podId, stream, rpc)
-	log.Println("opened new stream for pod with id:", podId)
+	// log.Println("opened new stream for pod with id:", podId)
 
 	return nil
 }
@@ -462,7 +462,7 @@ func (p *podServer) execCreatePod(name, image string) (string, error) {
 	}
 
 	p.pods[podId] = newPodInstance(podId, stream, rpc)
-	log.Println("created new pod with id:", podId)
+	// log.Println("created new pod with id:", podId)
 
 	return podId, nil
 }
@@ -484,7 +484,7 @@ func (p *podServer) execAddExistingPodWithoutConnect(podId string) error {
 
 	rpc := rpc.NewRpcClient(stream)
 	p.pods[podId] = newPodInstance(podId, stream, rpc)
-	log.Println("added existing pod with id without connecting:", podId)
+	// log.Println("added existing pod with id without connecting:", podId)
 
 	return nil
 }
@@ -501,7 +501,7 @@ func (p *podServer) execAddExistingPod(podId string) error {
 
 	rpc := rpc.NewRpcClient(stream)
 	p.pods[podId] = newPodInstance(podId, stream, rpc)
-	log.Println("added existing pod with id:", podId)
+	// log.Println("added existing pod with id:", podId)
 
 	return nil
 }
@@ -541,7 +541,7 @@ func (p *podServer) execUpdateConnectedPod(podId string) error {
 
 	rpc := rpc.NewRpcClient(stream)
 	p.pods[podId] = newPodInstance(podId, stream, rpc)
-	log.Println("added existing pod with id:", podId)
+	// log.Println("added existing pod with id:", podId)
 
 	return nil
 }
@@ -556,17 +556,17 @@ func (p *podServer) execCloseReconnect() {
 
 func (p *podServer) execReconnectIfNet(err error) {
 	if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
-		log.Println("got timeout error:", nerr)
+		// log.Println("got timeout error:", nerr)
 		if err := p.execReconnect(); err != nil {
 			log.Println("failure in execReconnectIfNet:", err)
 		}
 	} else if errors.Is(err, io.EOF) {
-		log.Println("got EOF error:", nerr)
+		// log.Println("got EOF error:", nerr)
 		if err := p.execReconnect(); err != nil {
 			log.Println("failure in execReconnectIfNet:", err)
 		}
 	} else if errors.Is(err, rpc.ErrNilStream) {
-		log.Println("got nil stream error:", nerr)
+		// log.Println("got nil stream error:", nerr)
 		if err := p.execReconnect(); err != nil {
 			log.Println("failure in execReconnectIfNet:", err)
 		}
@@ -574,7 +574,7 @@ func (p *podServer) execReconnectIfNet(err error) {
 }
 
 func (p *podServer) execClose(code quic.ApplicationErrorCode, message string) {
-	log.Printf("podServer.execClose(%v, %v)", code, message)
+	// log.Printf("podServer.execClose(%v, %v)", code, message)
 
 	if p.tr != nil {
 		p.tr.Close()
@@ -588,7 +588,7 @@ func (p *podServer) execClose(code quic.ApplicationErrorCode, message string) {
 }
 
 func (p *podServer) execConnect() error {
-	log.Printf("podServer.execConnect(%v)", p.addr)
+	// log.Printf("podServer.execConnect(%v)", p.addr)
 
 	if p.tr != nil {
 		return fmt.Errorf("pod server already as a connection transport")
@@ -615,7 +615,7 @@ func (p *podServer) execConnect() error {
 	p.tr = tr
 	p.conn = conn
 
-	log.Println("connected")
+	// log.Println("connected")
 
 	return nil
 }
