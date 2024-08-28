@@ -60,6 +60,7 @@ func main() {
 	app.OnRecordAfterDeleteRequest("podServers").Add(makePodServersAfterDeleteRequest(app, podman))
 
 	app.OnRecordBeforeCreateRequest("pods").Add(makePodsBeforeCreateRequest(app, podman))
+	app.OnRecordAfterCreateRequest("pods").Add(makePodsAfterCreateRequest(app, podman))
 	app.OnRecordBeforeUpdateRequest("pods").Add(makePodsBeforeUpdateRequest(app, podman))
 	app.OnRecordAfterDeleteRequest("pods").Add(makePodsAfterDeleteRequest(app, podman))
 
@@ -205,6 +206,17 @@ func makePodServersBeforeUpdateRequest(pm *pods.PodServerManager) func(e *core.R
 
 func makePodsBeforeCreateRequest(app *pocketbase.PocketBase, pm *pods.PodServerManager) func(e *core.RecordCreateEvent) error {
 	return func(e *core.RecordCreateEvent) error {
+		info := apis.RequestInfo(e.HttpContext)
+
+		maxPods := info.AuthRecord.GetInt("maxPods")
+		pods := info.AuthRecord.GetStringSlice("pods")
+		if len(pods)+1 > maxPods {
+			return apis.NewForbiddenError("already reached limit of pods for account", map[string]any{
+				"maxPods": maxPods,
+				"pods":    len(pods),
+			})
+		}
+
 		serverId := e.Record.GetString("server")
 		podName := e.Record.GetString("name")
 		podImage := e.Record.GetString("image")
@@ -222,6 +234,39 @@ func makePodsBeforeCreateRequest(app *pocketbase.PocketBase, pm *pods.PodServerM
 		} else {
 			e.Record.Set("running", data.State.Running)
 			e.Record.Set("status", data.State.Status)
+		}
+
+		return nil
+	}
+}
+
+func makePodsAfterCreateRequest(app *pocketbase.PocketBase, pm *pods.PodServerManager) func(e *core.RecordCreateEvent) error {
+	return func(e *core.RecordCreateEvent) error {
+		info := apis.RequestInfo(e.HttpContext)
+
+		if err := app.Dao().RunInTransaction(func(txDao *daos.Dao) error {
+			user, err := txDao.FindRecordById("users", info.AuthRecord.Id)
+			if err != nil {
+				return err
+			}
+
+			pods := user.GetStringSlice("pods")
+			pods = append(pods, e.Record.Id)
+			user.Set("pods", pods)
+
+			app.Logger().Info(
+				"added a pod to user",
+				"user",
+				info.AuthRecord.Id,
+				"pod",
+				e.Record.Id,
+				"pods",
+				pods,
+			)
+
+			return txDao.SaveRecord(user)
+		}); err != nil {
+			return err
 		}
 
 		return nil

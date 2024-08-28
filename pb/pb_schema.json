@@ -530,7 +530,7 @@
     "indexes": [],
     "listRule": "@request.auth.id != '' && (\n  @request.auth.pods:each = id ||\n  @request.auth.role = 'editor'\n)",
     "viewRule": "@request.auth.id != '' && (\n  @request.auth.pods:each = id ||\n  @request.auth.role = 'editor'\n)",
-    "createRule": "@request.auth.id != '' && (\n  @request.auth.maxPods < @request.auth.pods:length ||\n  @request.auth.role = 'editor'\n)",
+    "createRule": "@request.auth.id != ''",
     "updateRule": "@request.auth.id != '' && (\n  @request.auth.pods:each = id ||\n  @request.auth.role = 'editor'\n)",
     "deleteRule": "@request.auth.id != '' && (\n  @request.auth.pods:each = id ||\n  @request.auth.role = 'editor'\n)",
     "options": {}
