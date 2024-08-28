@@ -17,6 +17,7 @@
   message={$message}
 >
   <svelte:fragment slot="title">Nova aula</svelte:fragment>
+  <svelte:fragment slot="save">Criar</svelte:fragment>
 
   <TextInput
     name="title"
