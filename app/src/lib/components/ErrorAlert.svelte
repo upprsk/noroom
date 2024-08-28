@@ -2,7 +2,7 @@
   export let errors: string[] | undefined;
 </script>
 
-{#if errors}
+{#if errors && errors.length}
   <div role="alert" class="alert alert-error">
     <svg
       xmlns="http://www.w3.org/2000/svg"

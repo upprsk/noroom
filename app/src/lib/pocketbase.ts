@@ -89,10 +89,10 @@ export const processError = <T extends z.ZodTypeAny, S extends z.ZodTypeAny>(
 export const getFileUrl = (m: BaseModel, file: string, opt?: FileOptions) =>
   pb.files.getUrl(m, file, opt);
 
-export const simpleSend = <T extends z.ZodTypeAny>(
+export const simpleSend = <T extends z.ZodTypeAny, Params extends unknown[]>(
   pb: PocketBase,
   schema: T,
-  path: string,
+  path: string | ((...args: Params) => string),
   options: SendOptions,
 ) => {
   const loading = writable(false);
@@ -110,14 +110,15 @@ export const simpleSend = <T extends z.ZodTypeAny>(
     error,
     errors,
     data,
-    send: async () => {
+    send: async (...args: Params) => {
       if (get(loading)) throw new Error('already sending');
 
       try {
         loading.set(true);
         error.set(undefined);
 
-        const res = schema.parse(await pb.send(path, options)) as z.infer<T>;
+        const p = typeof path === 'string' ? path : path(...args);
+        const res = schema.parse(await pb.send(p, options)) as z.infer<T>;
         data.set(res);
       } catch (e) {
         console.error('error in send to ', path, ':', e);

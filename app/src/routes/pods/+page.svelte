@@ -1,98 +1,52 @@
 <script lang="ts">
-  import { invalidate } from '$app/navigation';
   import BasicCard from '$lib/components/BasicCard.svelte';
+  import ErrorAlert from '$lib/components/ErrorAlert.svelte';
   import { zPodSchema, zPodServerSchema, zPodServerWithPodsSchema } from '$lib/models.js';
-  import { pb, updateFromEvent } from '$lib/pocketbase.js';
-  import { ClientResponseError } from 'pocketbase';
+  import { pb, simpleSend, updateFromEvent } from '$lib/pocketbase.js';
   import { onMount } from 'svelte';
-  import type { z } from 'zod';
+  import { z } from 'zod';
 
   export let data;
 
-  let isStarting = false;
-  const startPod = async (id: string) => {
-    try {
-      isStarting = true;
+  const {
+    loading: loadingStart,
+    errors: errorsStart,
+    send: sendStart,
+  } = simpleSend(pb, z.unknown(), (id: string) => `/api/noroom/pod/${id}/start`, {
+    method: 'post',
+  });
 
-      const res = await pb.send(`/api/noroom/pod/${id}/start`, {
-        method: 'post',
-      });
+  const {
+    loading: loadingStop,
+    errors: errorsStop,
+    send: sendStop,
+  } = simpleSend(pb, z.unknown(), (id: string) => `/api/noroom/pod/${id}/stop`, {
+    method: 'post',
+  });
 
-      console.log(res);
-    } catch (e) {
-      console.error(e);
+  const {
+    loading: loadingKill,
+    errors: errorsKill,
+    send: sendKill,
+  } = simpleSend(pb, z.unknown(), (id: string) => `/api/noroom/pod/${id}/kill`, {
+    method: 'post',
+  });
 
-      if (e instanceof ClientResponseError) {
-        console.error(e.message);
-      }
-    } finally {
-      isStarting = false;
-    }
-  };
+  const {
+    loading: loadingInspect,
+    errors: errorsInspect,
+    send: sendInspect,
+  } = simpleSend(pb, z.unknown(), (id: string) => `/api/noroom/pod/${id}/inspect`, {
+    method: 'post',
+  });
 
-  let isStopping = false;
-  const stopPod = async (id: string) => {
-    try {
-      isStopping = true;
-
-      const res = await pb.send(`/api/noroom/pod/${id}/stop`, {
-        method: 'post',
-      });
-
-      console.log(res);
-    } catch (e) {
-      console.error(e);
-
-      if (e instanceof ClientResponseError) {
-        console.error(e.message);
-      }
-    } finally {
-      isStopping = false;
-    }
-  };
-
-  let isKilling = false;
-  const killPod = async (id: string) => {
-    try {
-      isKilling = true;
-
-      const res = await pb.send(`/api/noroom/pod/${id}/kill`, {
-        method: 'post',
-      });
-
-      console.log(res);
-    } catch (e) {
-      console.error(e);
-
-      if (e instanceof ClientResponseError) {
-        console.error(e.message);
-      }
-    } finally {
-      isKilling = false;
-    }
-  };
-
-  let isInspecting = false;
-  const inspectPod = async (id: string) => {
-    try {
-      isInspecting = true;
-
-      const res = await pb.send(`/api/noroom/pod/${id}/inspect`, {
-        method: 'post',
-      });
-
-      console.log(res);
-      invalidate('app:podServers');
-    } catch (e) {
-      console.error(e);
-
-      if (e instanceof ClientResponseError) {
-        console.error(e.message);
-      }
-    } finally {
-      isInspecting = false;
-    }
-  };
+  $: anyLoading = $loadingStart || $loadingStop || $loadingKill || $loadingInspect;
+  $: allErrors = [
+    ...($errorsStart ?? []),
+    ...($errorsStop ?? []),
+    ...($errorsKill ?? []),
+    ...($errorsInspect ?? []),
+  ];
 
   // --------------------------------------------------------------------------
 
@@ -136,6 +90,14 @@
 
   <div class="h-5"></div>
 
+  <p>
+    Os servidores Pod permitem criar maquinas virtuais na nuvem. Cada usuario tem direito por padrao
+    a uma maquina virtual. Se precisar de mais maquinas, entre em contato com um administrador do
+    sistema para ter o seu limite ajustado.
+  </p>
+
+  <ErrorAlert errors={allErrors} />
+
   <div class="prose">
     <ul>
       {#each data.podServers as srv (srv.id)}
@@ -159,33 +121,36 @@
                   <div>
                     <button
                       type="button"
-                      class="btn btn-sm"
-                      disabled={isStarting}
-                      on:click={() => startPod(pod.id)}
-                    >
-                      start
-                    </button>
-                    <button
-                      type="button"
-                      class="btn btn-sm"
-                      disabled={isStopping}
-                      on:click={() => stopPod(pod.id)}
-                    >
-                      stop
-                    </button>
-                    <button
-                      type="button"
                       class="btn btn-info btn-sm"
-                      disabled={isInspecting}
-                      on:click={() => inspectPod(pod.id)}
+                      disabled={anyLoading}
+                      on:click={() => sendInspect(pod.id)}
                     >
                       inspect
                     </button>
+
+                    <button
+                      type="button"
+                      class="btn btn-primary btn-sm"
+                      disabled={anyLoading}
+                      on:click={() => sendStart(pod.id)}
+                    >
+                      start
+                    </button>
+
+                    <button
+                      type="button"
+                      class="btn btn-accent btn-sm"
+                      disabled={anyLoading}
+                      on:click={() => sendStop(pod.id)}
+                    >
+                      stop
+                    </button>
+
                     <button
                       type="button"
                       class="btn btn-warning btn-sm"
-                      disabled={isKilling}
-                      on:click={() => killPod(pod.id)}
+                      disabled={anyLoading}
+                      on:click={() => sendKill(pod.id)}
                     >
                       kill
                     </button>
