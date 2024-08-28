@@ -1,8 +1,6 @@
 <script lang="ts">
-  import { placeholderLetters } from '$lib';
   import BasicAvatarNoLink from '$lib/components/BasicAvatarNoLink.svelte';
   import BasicCard from '$lib/components/BasicCard.svelte';
-  import { getFileUrl } from '$lib/pocketbase';
 
   export let data;
 </script>
@@ -15,11 +13,6 @@
       <!-- head -->
       <thead>
         <tr>
-          <th>
-            <label>
-              <input type="checkbox" class="checkbox" />
-            </label>
-          </th>
           <th>Nome</th>
           <th>Matrícula/Curso</th>
           <th>Posição</th>
@@ -29,11 +22,6 @@
         {#each data.users as user (user.id)}
           <!-- row 1 -->
           <tr>
-            <th>
-              <label>
-                <input type="checkbox" class="checkbox" />
-              </label>
-            </th>
             <td>
               <div class="flex items-center gap-3">
                 <BasicAvatarNoLink {user} />
@@ -61,7 +49,6 @@
       <!-- foot -->
       <tfoot>
         <tr>
-          <th></th>
           <th>Nome</th>
           <th>Matrícula/Curso</th>
           <th>Posição</th>
