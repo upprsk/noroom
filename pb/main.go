@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log"
+	"os"
 
 	"noroom/pb/pods"
 
@@ -25,8 +26,8 @@ func main() {
 
 	// serves static files from the provided public dir (if exists)
 	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
-		// e.Router.GET("/*", apis.StaticDirectoryHandler(os.DirFS("./pb_public"), true))
 		e.Router.Pre(middlewareLoadAuthContextFromQuery(app))
+		e.Router.GET("/*", apis.StaticDirectoryHandler(os.DirFS("./pb_public"), true))
 
 		e.Router.POST("/api/noroom/tracking", makeApiNoroomTracking(app, validate), apis.ActivityLogger(app))
 
