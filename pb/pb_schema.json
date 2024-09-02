@@ -189,7 +189,9 @@
         }
       }
     ],
-    "indexes": [],
+    "indexes": [
+      "CREATE UNIQUE INDEX `idx_uGdEVao` ON `classPresenceEntries` (\n  `user`,\n  `class`\n)"
+    ],
     "listRule": "@request.auth.id != ''",
     "viewRule": "@request.auth.id != ''",
     "createRule": null,
