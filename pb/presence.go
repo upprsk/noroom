@@ -98,22 +98,22 @@ func makeApiNoroomPresence(app *pocketbase.PocketBase, validate *validator.Valid
 				return err
 			}
 
-			fingerprintErr, ok := v["fingerprint"]
+			classErr, ok := v["class"]
 			if !ok {
 				return err
 			}
 
-			fingerprint, ok := fingerprintErr.(validation.ErrorObject)
+			class, ok := classErr.(validation.ErrorObject)
 			if !ok {
 				return err
 			}
 
-			if fingerprint.Code() == "validation_not_unique" {
+			if class.Code() == "validation_not_unique" {
 				return apis.NewBadRequestError(
-					"device was already used for presence before for the current class",
+					"user has already computed presence for the class",
 					map[string]any{
-						"fingerprint": body.Fingerprint,
-						"class":       klass.Id,
+						"class": body.ClassId,
+						"user":  info.AuthRecord.Id,
 					},
 				)
 			}
