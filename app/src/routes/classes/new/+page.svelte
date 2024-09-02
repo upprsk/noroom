@@ -2,11 +2,31 @@
   import BasicFormCard from '$lib/components/BasicFormCard.svelte';
   import TextArea from '$lib/components/input/TextArea.svelte';
   import TextInput from '$lib/components/input/TextInput.svelte';
-  import { superForm } from 'sveltekit-superforms';
+  import { pb, processError } from '$lib/pocketbase';
+  import { currentUser } from '$lib/stores/user';
+  import { defaults, superForm } from 'sveltekit-superforms';
+  import { zod } from 'sveltekit-superforms/adapters';
+  import { zErrorSchema, zFormSchema } from './models';
+  import { goto } from '$app/navigation';
 
-  export let data;
+  const { form, errors, constraints, message, submitting, delayed, enhance } = superForm(
+    defaults(zod(zFormSchema)),
+    {
+      SPA: true,
+      validators: zod(zFormSchema),
+      async onUpdate({ form }) {
+        if (!form.valid) return;
 
-  const { form, errors, constraints, message, submitting, delayed, enhance } = superForm(data.form);
+        try {
+          await pb.collection('classes').create({ ...form.data, owner: $currentUser!.id });
+        } catch (e) {
+          return processError(form, e, zErrorSchema);
+        }
+
+        goto('/');
+      },
+    },
+  );
 </script>
 
 <BasicFormCard

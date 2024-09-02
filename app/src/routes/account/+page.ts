@@ -1,10 +1,13 @@
 import { zEndDeviceSchema } from '$lib/models';
-import { redirect, type ServerLoad } from '@sveltejs/kit';
+import { pb } from '$lib/pocketbase';
+import { currentUser } from '$lib/stores/user';
+import { redirect, type Load } from '@sveltejs/kit';
+import { get } from 'svelte/store';
 
 const zDevices = zEndDeviceSchema.array();
 
-export const load: ServerLoad = async ({ locals, fetch }) => {
-  const { pb, user } = locals;
+export const load: Load = async ({ fetch }) => {
+  const user = get(currentUser);
 
   if (!user) redirect(303, '/');
 
@@ -15,5 +18,5 @@ export const load: ServerLoad = async ({ locals, fetch }) => {
 
   const [devices] = await Promise.all([devicesP]);
 
-  return { devices };
+  return { user, devices };
 };

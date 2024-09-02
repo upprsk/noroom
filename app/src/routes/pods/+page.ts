@@ -1,11 +1,14 @@
 import { zPodSchema, zPodServerSchema } from '$lib/models';
-import { redirect, type ServerLoad } from '@sveltejs/kit';
+import { pb } from '$lib/pocketbase';
+import { currentUser } from '$lib/stores/user';
+import { redirect, type Load } from '@sveltejs/kit';
+import { get } from 'svelte/store';
 
 const zPodServerArraySchema = zPodServerSchema.array();
 const zPodArraySchema = zPodSchema.array();
 
-export const load: ServerLoad = async ({ locals, fetch, depends }) => {
-  const { pb, user } = locals;
+export const load: Load = async ({ fetch, depends }) => {
+  const user = get(currentUser);
 
   if (!user) throw redirect(303, '/');
 
@@ -23,5 +26,5 @@ export const load: ServerLoad = async ({ locals, fetch, depends }) => {
 
   depends('app:podServers');
 
-  return { podServers, pods };
+  return { user, podServers, pods };
 };

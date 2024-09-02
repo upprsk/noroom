@@ -1,11 +1,10 @@
 import { zClassSchema } from '$lib/models';
-import type { ServerLoad } from '@sveltejs/kit';
+import { pb } from '$lib/pocketbase';
+import type { Load } from '@sveltejs/kit';
 
 const zClassesArraySchema = zClassSchema.array();
 
-export const load: ServerLoad = async ({ locals, fetch }) => {
-  const { pb } = locals;
-
+export const load: Load = async ({ fetch }) => {
   const classesP = pb
     .collection('classes')
     .getFullList({ fetch })

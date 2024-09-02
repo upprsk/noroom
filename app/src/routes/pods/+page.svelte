@@ -1,8 +1,8 @@
 <script lang="ts">
   import BasicCard from '$lib/components/BasicCard.svelte';
   import ErrorAlert from '$lib/components/ErrorAlert.svelte';
-  import { zPodSchema, zPodServerSchema, zPodServerWithPodsSchema } from '$lib/models.js';
-  import { pb, simpleSend, updateFromEvent } from '$lib/pocketbase.js';
+  import { zPodSchema, zPodServerSchema, zPodServerWithPodsSchema } from '$lib/models';
+  import { pb, simpleSend, updateFromEvent } from '$lib/pocketbase';
   import { onMount } from 'svelte';
   import { z } from 'zod';
 
@@ -101,7 +101,7 @@
 
   {#if data.user.pods.length < data.user.maxPods || data.user.role === 'editor'}
     <div class="flex w-full justify-end">
-      <a href="pods/new" class="btn btn-primary btn-sm">novo</a>
+      <a href="new" class="btn btn-primary btn-sm">novo</a>
     </div>
   {/if}
 
@@ -163,7 +163,7 @@
                 >
               {/if}
 
-              <a href="pods/{pod.id}" class="btn btn-ghost btn-xs">details</a>
+              <a href={pod.id} class="btn btn-ghost btn-xs">details</a>
             </th>
           </tr>
         {/each}

@@ -3,8 +3,8 @@
   import ErrorAlert from '$lib/components/ErrorAlert.svelte';
   import EmailInput from '$lib/components/input/EmailInput.svelte';
   import StatusAlert from '$lib/components/StatusAlert.svelte';
-  import { zEndDeviceSchema } from '$lib/models.js';
-  import { pb, updateFromEvent } from '$lib/pocketbase.js';
+  import { zEndDeviceSchema } from '$lib/models';
+  import { pb, updateFromEvent } from '$lib/pocketbase';
   import { ClientResponseError } from 'pocketbase';
   import { onMount } from 'svelte';
   import type { z } from 'zod';

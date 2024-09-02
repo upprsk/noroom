@@ -1,25 +1,26 @@
 <script lang="ts">
-  import { applyAction, enhance } from '$app/forms';
+  import { goto } from '$app/navigation';
   import { pb } from '$lib/pocketbase';
-  import { currentUser } from '$lib/stores/user';
+  import { currentUser, shouldTrack } from '$lib/stores/user';
   import { clrLastTrackedTime } from '$lib/tracking';
   import BasicAvatar from './BasicAvatar.svelte';
 </script>
 
 <div class="navbar-end gap-2">
   {#if $currentUser}
-    <form
-      method="POST"
-      action="/logout"
-      use:enhance={() =>
-        async ({ result }) => {
-          pb.authStore.clear();
-          clrLastTrackedTime();
-          await applyAction(result);
-        }}
+    <button
+      type="button"
+      class="btn btn-ghost btn-sm"
+      on:click={() => {
+        pb.authStore.clear();
+        clrLastTrackedTime();
+
+        goto('/');
+        shouldTrack.set(true);
+      }}
     >
-      <button class="btn btn-ghost btn-sm">Logout</button>
-    </form>
+      Logout
+    </button>
 
     <BasicAvatar href="/account" user={$currentUser} />
   {:else}

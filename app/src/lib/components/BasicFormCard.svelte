@@ -7,13 +7,11 @@
   export let submitting: boolean;
   export let _errors: string[] | undefined;
   export let message: string | undefined;
-
-  export let action: string | undefined = undefined;
 </script>
 
 <div class="items-center flex justify-center p-5">
   <div class="card w-full max-w-4xl bg-base-100">
-    <form class="card-body" method="POST" {action} enctype="multipart/form-data" use:enhance>
+    <form class="card-body" method="POST" enctype="multipart/form-data" use:enhance>
       <h4 class="card-title"><slot name="title" /></h4>
 
       <slot />

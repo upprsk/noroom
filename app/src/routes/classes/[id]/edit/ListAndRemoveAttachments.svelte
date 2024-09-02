@@ -7,8 +7,8 @@
 
 <h4 class="text-lg">Arquivos anexados</h4>
 
-<div class="border-l pl-5 rounded flex flex-col gap-3 max-w-md">
+<div class="flex max-w-md flex-col gap-3 rounded border-l pl-5">
   {#each klass.attachments as attachment}
-    <RemoveAttachment {attachment} />
+    <RemoveAttachment {attachment} on:remove />
   {/each}
 </div>

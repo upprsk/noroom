@@ -1,9 +1,13 @@
 import { zClassWithPresenceSchema } from '$lib/models';
-import { redirect, type ServerLoad } from '@sveltejs/kit';
+import { pb } from '$lib/pocketbase';
+import { currentUser } from '$lib/stores/user';
+import { redirect, type Load } from '@sveltejs/kit';
+import { get } from 'svelte/store';
 
-export const load: ServerLoad = async ({ locals, params, fetch }) => {
+export const load: Load = async ({ params, fetch }) => {
   const { id } = params;
-  const { pb, user } = locals;
+
+  const user = get(currentUser);
 
   if (!id || !user) throw redirect(303, '/');
 

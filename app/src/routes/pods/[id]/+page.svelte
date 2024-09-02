@@ -1,8 +1,8 @@
 <script lang="ts">
   import BasicCard from '$lib/components/BasicCard.svelte';
   import ErrorAlert from '$lib/components/ErrorAlert.svelte';
-  import { zPodWithServerSchema } from '$lib/models.js';
-  import { pb, simpleRequest, simpleSend, updateOneFromEvent } from '$lib/pocketbase.js';
+  import { zPodWithServerSchema } from '$lib/models';
+  import { pb, simpleRequest, simpleSend, updateOneFromEvent } from '$lib/pocketbase';
   import '@xterm/xterm/css/xterm.css';
   import { onMount } from 'svelte';
   import { z } from 'zod';

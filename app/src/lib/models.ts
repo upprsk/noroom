@@ -84,12 +84,12 @@ export const zEndDeviceSchema = zModelBase.extend({
 export const zRegisterSchema = zUserSchema
   .pick({
     username: true,
-    email: true,
     name: true,
     mat: true,
     curso: true,
   })
   .extend({
+    email: z.string().email(),
     password: z.string(),
     passwordConfirm: z.string(),
   });

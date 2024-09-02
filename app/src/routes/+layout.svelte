@@ -1,16 +1,10 @@
 <script lang="ts">
   import Navbar from '$lib/components/Navbar.svelte';
-  import type { UserModel } from '$lib/models';
   import { pb } from '$lib/pocketbase';
-  import { currentUser } from '$lib/stores/user';
+  import { currentUser, shouldTrack } from '$lib/stores/user';
   import { getLastTrackedTime, sendTracking, setLastTrackedTime } from '$lib/tracking';
   import { onMount } from 'svelte';
   import '../app.css';
-
-  export let data;
-
-  // Set the current user from the data passed in from the server
-  $: currentUser.set(data.user as UserModel);
 
   const checkTimeElapsed = () => {
     const ltt = getLastTrackedTime();
@@ -37,6 +31,8 @@
       if (typeof fingerprint === 'string') {
         if ($currentUser) setLastTrackedTime();
         sendTracking(pb, $currentUser?.id, fingerprint, data);
+
+        $shouldTrack = false;
       }
     }
   };
@@ -44,9 +40,11 @@
   onMount(async () => {
     sendTrackingTimed();
   });
+
+  $: if ($shouldTrack) sendTrackingTimed();
 </script>
 
-<div class="flex flex-col w-full h-full">
+<div class="flex h-full w-full flex-col">
   <Navbar />
 
   <div class="grow overflow-y-auto">

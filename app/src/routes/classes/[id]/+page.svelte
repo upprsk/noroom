@@ -1,6 +1,6 @@
 <script lang="ts">
   import BasicCard from '$lib/components/BasicCard.svelte';
-  import { getFileUrl } from '$lib/pocketbase.js';
+  import { getFileUrl } from '$lib/pocketbase';
   import { currentUser } from '$lib/stores/user';
   import { Marked, type Renderer, type Tokens } from 'marked';
   import { markedHighlight } from 'marked-highlight';
@@ -127,8 +127,11 @@
 
   <div class="card-actions justify-end">
     <button type="button" class="btn" on:click={() => history.back()}>voltar</button>
+    {#if data.klass.live}
+      <a href="presence" class="btn">presenca</a>
+    {/if}
     {#if $currentUser?.id === data.klass.owner || $currentUser?.role === 'editor'}
-      <a href="{data.klass.id}/edit" class="btn btn-primary">editar</a>
+      <a href="edit" class="btn btn-primary">editar</a>
     {/if}
   </div>
 </BasicCard>
