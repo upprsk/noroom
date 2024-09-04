@@ -65,6 +65,8 @@ func main() {
 	app.OnRecordBeforeUpdateRequest("pods").Add(makePodsBeforeUpdateRequest(app, podman))
 	app.OnRecordAfterDeleteRequest("pods").Add(makePodsAfterDeleteRequest(app, podman))
 
+	app.OnRecordBeforeCreateRequest("pollAnswers").Add(makePollAnswersBeforeCreateRequest())
+
 	if err := app.Start(); err != nil {
 		log.Fatal(err)
 	}
@@ -305,6 +307,20 @@ func makePodsBeforeUpdateRequest(app *pocketbase.PocketBase, pm *pods.PodServerM
 			e.Record.Set("running", data.State.Running)
 			e.Record.Set("status", data.State.Status)
 		}
+
+		return nil
+	}
+}
+
+func makePollAnswersBeforeCreateRequest() func(e *core.RecordCreateEvent) error {
+	return func(e *core.RecordCreateEvent) error {
+		admin, _ := e.HttpContext.Get(apis.ContextAdminKey).(*models.Admin)
+		if admin != nil {
+			return nil // ignore for admins
+		}
+
+		info := apis.RequestInfo(e.HttpContext)
+		e.Record.Set("user", info.AuthRecord.Id)
 
 		return nil
 	}
