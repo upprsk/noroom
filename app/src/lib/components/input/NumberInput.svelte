@@ -1,7 +1,7 @@
 <script lang="ts">
   export let name: string;
   export let errors: string[] | undefined;
-  export let value: string;
+  export let value: number;
   export let constraints: { [key: string]: unknown } | undefined;
 
   export let disabled = false;
@@ -11,10 +11,9 @@
 <label class="form-control w-full max-w-xs">
   <div class="label">
     <span class="label-text"><slot /></span>
-    <slot name="extra-top" />
   </div>
   <input
-    type="text"
+    type="number"
     class="input input-bordered w-full max-w-xs"
     aria-invalid={errors ? 'true' : undefined}
     bind:value

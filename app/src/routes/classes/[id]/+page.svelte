@@ -72,6 +72,23 @@
 <BasicCard>
   <svelte:fragment slot="title">{data.klass.title}</svelte:fragment>
 
+  {#if data.classPolls.length > 0}
+    <div class="flex gap-2">
+      {#each data.classPolls as poll (poll.id)}
+        <a href="poll/{poll.id}" class="btn" class:btn-primary={poll.active}>
+          {poll.title}
+          <div class="badge">{poll.expand.pollAnswers_via_poll?.length ?? 0}</div>
+        </a>
+      {/each}
+
+      {#if data.user.role === 'editor'}
+        <a href="poll/new" class="btn">
+          Novo <div class="badge">+</div>
+        </a>
+      {/if}
+    </div>
+  {/if}
+
   <div class="prose">
     <!-- {@html htmlContent} -->
     {#await marked.parse(data.klass.content)}

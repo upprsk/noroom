@@ -1,13 +1,28 @@
-import { zClassWithPresenceSchema } from '$lib/models';
+import { zClassWithPresenceSchema, zPollAnswerSchema, zPollSchema } from '$lib/models';
 import { pb } from '$lib/pocketbase';
 import { currentUser } from '$lib/stores/user';
 import { redirect, type Load } from '@sveltejs/kit';
 import { get } from 'svelte/store';
+import { z } from 'zod';
+
+const zPollWithAnswersSchema = zPollSchema.extend({
+  expand: z
+    .object({
+      pollAnswers_via_poll: zPollAnswerSchema.array(),
+    })
+    .optional()
+    .default({
+      pollAnswers_via_poll: [],
+    }),
+});
+
+const zPollArraySchema = zPollWithAnswersSchema.array();
 
 export const load: Load = async ({ params, fetch }) => {
   const { id } = params;
+  const user = get(currentUser);
 
-  if (!id || !get(currentUser)) throw redirect(303, '/');
+  if (!id || !user) throw redirect(303, '/');
 
   const classP = pb
     .collection('classes')
@@ -17,7 +32,16 @@ export const load: Load = async ({ params, fetch }) => {
     })
     .then((r) => zClassWithPresenceSchema.parse(r));
 
-  const [klass] = await Promise.all([classP]);
+  const classPollsP = pb
+    .collection('polls')
+    .getFullList({
+      fetch,
+      filter: pb.filter('class={:klass}', { klass: id }),
+      expand: 'pollAnswers_via_poll',
+    })
+    .then((r) => zPollArraySchema.parse(r));
 
-  return { klass };
+  const [klass, classPolls] = await Promise.all([classP, classPollsP]);
+
+  return { user, klass, classPolls };
 };

@@ -28,6 +28,7 @@
 		"autoprefixer": "^10.4.20",
 		"daisyui": "^4.12.10",
 		"dompurify": "^3.1.6",
+		"echarts": "^5.5.1",
 		"eslint": "^9.0.0",
 		"eslint-config-prettier": "^9.1.0",
 		"eslint-plugin-svelte": "^2.36.0",

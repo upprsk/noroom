@@ -130,6 +130,24 @@ export const zClassWithPresenceSchema = zClassSchema.extend({
     .optional(),
 });
 
+export const zPollSchema = zModelBase.extend({
+  title: z.string(),
+  class: z.string(),
+  active: z.boolean(),
+  expects: z.enum(['number', 'string', 'option', 'multi']),
+  options: z.string(),
+});
+
+export const zPollAnswerSchema = zModelBase.extend({
+  poll: z.string(),
+  answer: z.union([z.string(), z.number(), z.string().array()]),
+  user: z.string(),
+});
+
+export const zPollAnswerWithUserSchema = zPollAnswerSchema.extend({
+  expand: z.object({ user: zUserSchema }).optional(),
+});
+
 export const zPodServerSchema = zModelBase.extend({
   name: z.string(),
   address: z.string(),
